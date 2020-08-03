@@ -100,7 +100,6 @@ x,y=intersection(x1,y1,x2,y2)
         except:
             T[:,i]=np.NaN
 
-
     in_range= (T[0,:] >=0) & (T[1,:] >=0) & (T[0,:] <=1) & (T[1,:] <=1)
 
     xy0=T[2:,in_range]
@@ -109,9 +108,9 @@ x,y=intersection(x1,y1,x2,y2)
 
 def findExactPoint(curve1, coordinate,limY=True):
     if limY:
-        curve2=np.array([[-999999,np.inf],[coordinate,coordinate]])
+        curve2=np.array([[-9E99,np.inf],[coordinate,coordinate]])
     else:
-        curve2=np.array([[coordinate,coordinate],[-999999,np.inf]])
+        curve2=np.array([[coordinate,coordinate],[-9E99,np.inf]])
     tupl = (intersection(curve1[0], curve1[1], curve2[0], curve2[1]))
     try:
         return [float(tupl[0]),float(tupl[1])]

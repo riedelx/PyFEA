@@ -1,82 +1,76 @@
-import pickle
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-#import utils
-#import math
+import pickle
+import sys
+#sys.path.insert(1, '/libraries')
+#import MNcurve as MN
+import materials as mat
+import utils
 
-class rss:
-    def __init__(self, ID, mat, b, d):
-        self.ID = ID
-        self.mat = mat
-        self.b = b
-        self.d = d
-
-    # def adaptic_print(self):
-    #     # convert dictionary values of different dimensionality to a flatten list
-    #     line = self.__dict__
-    #     line = np.array(list(line.values()))
-    #     return utils.str_joint(line)
-
-class rccs:
-    def __init__(self, ID, reinf_mat, unconf_mat, conf_mat, hc1, bc1, cover, links, reinf):
-        self.ID = ID
-        self.reinf_mat = reinf_mat
-        self.unconf_mat = unconf_mat
-        self.conf_mat = conf_mat
-        self.hc1 = hc1
-        self.hc2 = hc1 -2 * cover - links
-        self.bc1 = bc1
-        self.bc2 = bc1 -2 * cover - links
-        # each layer of reinforcement given as: [no of bars, diameter, distance from the bottom fibre]
-        # reinforcement given as a list [[layer_1], [layer_2],..., [layer_n]]
-        # layers order starting from the furtherst layer from the bottom fibre
-        self.reinf = [[int(math.pi*i[1]**2/4 * i[0]), i[2]] for i in reinf]
-        self.reinf_basic = reinf # [no of bars, diameter, distance from the bottom fibre]
-        self.area = hc1 * bc1
-        self.cover = cover
-        self.links = links # links diameter
-
-    # def adaptic_print(self):
-    #     # convert dictionary values of different dimensionality to a flatten list
-    #     dict0 = self.__dict__
-    #     dict1 = np.array(list(dict0.values())[0:8])
-    #     dict2 = np.array(list(dict0.values())[8])
-    #     dict2 = [val for sublist in dict2 for val in sublist]
-    #     line = np.hstack((dict1,dict2))
-    #     return utils.str_joint(line)
+def plotFunc(self,x_coordinates,y_coordinates):
+    fig = plt.figure(figsize = (6,4))
+    ax = fig.add_subplot(111)
+    ax.grid(which='major', linestyle=':', linewidth='0.5', color='black')
+    ax.plot(x_coordinates, y_coordinates,'k-')
+    #print(x_coordinates)
+    #print(y_coordinates)
+    for i in self.reinf_sect:
+        #print(i)
+        xTemp=i[2]
+        bTemp=self.width(xTemp)
+        bSpacing=bTemp/(i[0]+1)
+        for j in range(i[0]):
+            yTemp=-bTemp/2+j*bSpacing+bSpacing
+            #print(j,bTemp,xTemp,yTemp,i[1])
+            circ=plt.Circle((xTemp,yTemp), radius=i[1]/2, color='b', fill=False)
+            ax.add_patch(circ)
+    ax.plot(self.centr,0,'r+',markersize=10,linewidth=8)
+    ax.add_artist(circ)
+    ax.set_title('section layout')
+    ax.set_aspect('equal', 'box')
+    plt.show()
 
 class rcts:
-    def __init__(self, ID, reinf_mat, unconf_mat, conf_mat, Df, Dw, Bf, Bw, cover, links, reinf):
-        self.ID = ID
-        self.reinf_mat = reinf_mat
-        self.unconf_mat = unconf_mat
-        self.conf_mat = conf_mat
-        self.Df = Df
-        self.Dw = Dw
-        self.df = Df - cover * 2 - links
-        self.db = cover + Dw
-        self.Bf = Bf
-        self.Bw = Bw
-        self.bf = Bf - 2 * cover - links
-        self.bw = Bw - 2 * cover - links
-        # each layer of reinforcement given as: [no of bars, diameter, distance from the bottom fibre]
-        # reinforcement given as a list [[layer_1], [layer_2],..., [layer_n]]
-        # layers order starting from the furtherst layer from the bottom fibre
-        self.reinf = [[int(math.pi*i[1]**2/4 * i[0]), i[2]] for i in reinf]
-        self.reinf_basic = reinf # [no of bars, diameter, distance from the bottom fibre]
-        self.cover = cover
-        self.links = links # links diameter
+    def __init__(self,Df,Dw,Bf,Bw,reinf_sect,plotting=True):
+        self.Dw=Dw
+        self.Df=Df
+        self.Bw=Bw
+        self.Bf=Bf
+        self.reinf_sect=reinf_sect
+        self.h=Dw+Df
         area_w = Dw * Bw
         area_f = Df * Bf
         self.area = area_w + area_f
-        self.centr_top = int((Df*area_f/2+area_w*(Df+Dw/2))/self.area)
-        self.centr_bot = int(Df + Dw- self.centr_top)
+        self.centr = int(self.h-(Df*area_f/2+area_w*(Df+Dw/2))/self.area)
+        if plotting:
+            x_coordinates = [0,self.Dw+0,self.Dw+0,self.h,self.h,self.Dw+0,self.Dw+0,0,0]
+            y_coordinates = [self.Bw/2,self.Bw/2,self.Bf/2,self.Bf/2,-self.Bf/2,-self.Bf/2,-self.Bw/2,-self.Bw/2,self.Bw/2]
+            plotFunc(self,x_coordinates,y_coordinates)
+    def width(self,x):
+        if (x >= 0 and x <= self.Dw):
+            b=self.Bw
+        elif x<=self.h:
+            b=self.Bf
+        else:
+            b=0
+        return b
 
-    # def adaptic_print(self):
-    #     # convert dictionary values of different dimensionality to a flatten list
-    #     dict0 = self.__dict__
-    #     dict1 = np.array(list(dict0.values())[0:12])
-    #     dict2 = np.array(list(dict0.values())[12])
-    #     dict2 = [val for sublist in dict2 for val in sublist]
-    #     line = np.hstack((dict1,dict2))
-    #     return utils.str_joint(line)
+class rss:
+    def __init__(self, b, d, reinf_sect, plotting = True):
+        self.b = b
+        self.d = d
+        self.h = d
+        self.reinf_sect=reinf_sect
+        self.area = b * d
+        self.centr = int(d/2)
+        if plotting:
+            x_coordinates = [0,d,d,0,0]
+            y_coordinates = [b/2,b/2,-b/2,-b/2,b/2]
+            plotFunc(self,x_coordinates,y_coordinates)
+    def width(self,x):
+        if (x >= 0 and x <= self.d):
+            b=self.b
+        else:
+            b=0
+        return b

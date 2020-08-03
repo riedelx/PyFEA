@@ -13,69 +13,12 @@ def findPointZero(curve,epsilon,limY=False):
     try: return utils.findExactPoint(curve, epsilon,limY=limY)[1]
     except: return 0
 
-class rctsSect:
-    def __init__(self,Df,Dw,Bf,Bw,reinf_sect):
-        self.Dw=Dw
-        self.Df=Df
-        self.Bw=Bw
-        self.Bf=Bf
-        self.reinf_sect=reinf_sect
-        self.h=Dw+Df
-        area_w = Dw * Bw
-        area_f = Df * Bf
-        self.area = area_w + area_f
-        self.centr = int(self.h-(Df*area_f/2+area_w*(Df+Dw/2))/self.area)
-        #self.xmin = -int(self.h-(Df*area_f/2+area_w*(Df+Dw/2))/self.area)
-        #self.xmax = int((Df*area_f/2+area_w*(Df+Dw/2))/self.area)
-    def width(self,x):
-        if (x >= 0 and x <= 500):
-            b=self.Bw
-        elif x<=self.h:
-            b=self.Bf
-        else:
-            b=0
-        return b
-    def plot(self):
-        fig = plt.figure(figsize = (6,4))
-        ax = fig.add_subplot(111)
-        ax.grid(which='major', linestyle=':', linewidth='0.5', color='black')
-        x_coordinates = [0,self.Dw+0,self.Dw+0,self.h,self.h,self.Dw+0,self.Dw+0,0,0]
-        y_coordinates = [self.Bw/2,self.Bw/2,self.Bf/2,self.Bf/2,-self.Bf/2,-self.Bf/2,-self.Bw/2,-self.Bw/2,self.Bw/2]
-        ax.plot(x_coordinates, y_coordinates,'k-')
-        #print(x_coordinates)
-        #print(y_coordinates)
-        for i in self.reinf_sect:
-            #print(i)
-            xTemp=i[2]
-            bTemp=self.width(xTemp)
-            bSpacing=bTemp/(i[0]+1)
-            for j in range(i[0]):
-                yTemp=-bTemp/2+j*bSpacing+bSpacing
-                #print(j,bTemp,xTemp,yTemp,i[1])
-                circ=plt.Circle((xTemp,yTemp), radius=i[1]/2, color='b', fill=False)
-                ax.add_patch(circ)
-        ax.plot(self.centr,0,'r+',markersize=10,linewidth=8)
-        ax.add_artist(circ)
-        ax.set_title('section layout')
-        ax.set_aspect('equal', 'box')
-        plt.show()
-
 class MNclass:
     def __init__(self,concr,reinf,section):
         self.h=section.h
         self.section=section
         self.concr=concr
         self.reinf=reinf
-        stl1_df = reinf.stress_df()
-        self.stl1_df=pd.concat([-stl1_df.iloc[::-1],stl1_df])[::-1]
-
-    def materials(self,plotting=True):
-        self.stl1=self.plotStress(self.stl1_df,lbl="stl1",title="Reinforcement",xlim=(None,None),ylim=(None,None),plotting=plotting)
-        self.stl1=np.array(self.stl1)
-        self.con1_df=pd.DataFrame([[0,self.concr.epsilon_2t],[self.concr.ft,self.concr.epsilon_1t],
-                              [0,0],[-self.concr.fc1,-self.concr.epsilon_1c],[-self.concr.fc2,-self.concr.epsilon_2c]],columns=['stress','strain'])
-        self.con1=self.plotStress(self.con1_df,lbl="con1",title="C50/60")
-        self.con1=np.array(self.con1)
 
     def plotStress(self,curve,title="",lbl="",xlim=(None,None),ylim=(None,None),plotting=True):
         if plotting:
@@ -89,13 +32,6 @@ class MNclass:
             ax.set_ylim(ylim)
             plt.show()
         return curve['strain'],curve['stress']
-    def epsilonBuildX(self,x_NA,hogging,eps_u=0.0035,plotting=False):
-        if hogging:
-            epsH=eps_u
-            eps0=eps_u*(1-h/(h-x_NA))
-        else:
-            eps0=eps_u
-            epsH=eps_u*(1-h/(x_NA))
         if plotting:
                 fig,ax = utils.plotBase()
                 ax.plot([0,h],[eps0,epsH],'-', linewidth=2, markersize=5)
@@ -120,7 +56,26 @@ class MNclass:
                 plt.show()
         return np.array([[0,self.h],[eps0,epsH]])
     def epsilonFunc(self,x,epsilon): return utils.findExactPoint(epsilon, x,limY=False)[1]
-    def calc(self,eps0,epsH,plotting=False,n_layers=100,eps_u=0.0035):
+    def calcX0(self,eps0,x_NA,plotting=False,n_layers=100):
+        if x_NA == 0:
+            epsH = 0
+        elif x_NA>self.h:
+            eps0 = eps0/2*x_NA/(x_NA-0.5*self.h)
+            epsH = - eps0 * (self.h - x_NA) / x_NA
+        else:
+            epsH = - eps0 * (self.h - x_NA) / x_NA
+        return self.calc(eps0,epsH,plotting=plotting,n_layers=n_layers)
+
+    def calcXH(self,epsH,x_NA,plotting=False,n_layers=100):
+        if x_NA == 0:
+            eps0 = 0
+        elif x_NA>self.h:
+            epsH = epsH/2*x_NA/(x_NA-0.5*self.h)
+            eps0 = - epsH * (self.h - x_NA) / x_NA
+        else:
+            eps0 = - epsH * (self.h - x_NA) / x_NA
+        return self.calc(eps0,epsH,plotting=plotting,n_layers=n_layers)
+    def calc(self,eps0,epsH,plotting=False,n_layers=100):
         epsilon=self.epsilonBuildEps(eps0=eps0,epsH=epsH,plotting=plotting)
         #strain_conLim=.0035
         h_i=self.h/n_layers
@@ -129,10 +84,12 @@ class MNclass:
         f_s=[]
         m_s=0
         sigma_s=[]
+        eps_s=[]
         x_s=np.array(self.section.reinf_sect).T[2]
         for i in self.section.reinf_sect:
-            eps_s=self.epsilonFunc(i[2],epsilon)
-            sigma= findPointZero(self.stl1,eps_s)
+            eps=self.epsilonFunc(i[2],epsilon)
+            eps_s.append(eps)
+            sigma= findPointZero(self.reinf.np,eps)
             sigma_s.append(sigma)
             A=np.pi*i[1]**2/4*i[0]
             f_s_i=sigma*A
@@ -146,7 +103,7 @@ class MNclass:
             x_sEnv.append(x_i)
             b_i=self.section.width(x_i)
             e=self.epsilonFunc(x_i,epsilon)
-            s=findPointZero(self.stl1,e)
+            s=findPointZero(self.reinf.np,e)
             sigma_sEnv.append(s)
         if plotting:
             fig,ax = utils.plotBase()
@@ -170,7 +127,7 @@ class MNclass:
             x_con.append(x_i)
             b_i=self.section.width(x_i)
             e=self.epsilonFunc(x_i,epsilon)
-            s=findPointZero(self.con1,e)
+            s=findPointZero(self.concr.np,e)
             sigma_con.append(s)
             f_con_i=s*b_i*h_i
             f_con.append(f_con_i)
@@ -187,5 +144,39 @@ class MNclass:
             ax.set_ylim(None,None)
             plt.show()
         f_tot=sum(f_con)+sum(f_s)
-        m_tot=m_con+m_s
-        return f_tot,m_tot,f_s,f_con#,f_s,m_con,m_s#sum(f_con)+sum(f_s),m_con+m_s,sum(f_con),sum(f_s),m_con,m_s
+        m_tot=m_con+m_s - 0.5*f_tot*self.h
+        if plotting:
+            print('Total axial force: {} kN'.format(int(f_tot/1E3)))
+            print('Total moment: {} kNm'.format(int(m_tot/1E6)))
+        return f_tot,m_tot,f_s,f_con,eps_s,sigma_s
+    def mnCurve(self,xRatio=[0.16,0.2,0.3,0.4,0.5,0.8,0.9,1,1E99],n_layers=100,epsU=-0.0035,reverseMoment=False):
+        F=[]
+        M=[]
+        xRatio=[i*self.h for i in xRatio]
+        f_tot,m_tot,f_s,f_con,eps_s,sigma_s=self.calcX0(eps0=self.reinf.epsilon_u,x_NA=1E99, plotting=False, n_layers=n_layers)
+        F.append(int(f_tot/1E3))
+        M.append(int(m_tot/1E6))
+        for i in xRatio:
+            #print(i)
+            f_tot,m_tot,f_s,f_con,eps_s,sigma_s=self.calcX0(eps0=epsU,x_NA=i, plotting=False, n_layers=n_layers)
+            F.append(int(f_tot/1E3))
+            M.append(int(m_tot/1E6))
+        #for i in xRatio[:-1]:
+        for i in xRatio[-2::-1]:
+            #print(-i)
+            f_tot,m_tot,f_s,f_con,eps_s,sigma_s=self.calcXH(epsH=epsU,x_NA=i, plotting=False, n_layers=n_layers)
+            F.append(int(f_tot/1E3))
+            M.append(int(m_tot/1E6))
+        f_tot,m_tot,f_s,f_con,eps_s,sigma_s=self.calcX0(eps0=self.reinf.epsilon_u,x_NA=1E99, plotting=False, n_layers=n_layers)
+        F.append(int(f_tot/1E3))
+        M.append(int(m_tot/1E6))
+        mnInteraction = pd.DataFrame(np.array([F,M]).T,columns=['F','M'])#.sort_values(by=['x'])
+        if reverseMoment:
+            mnInteraction['M']=-mnInteraction['M']
+        fig,ax = utils.plotBase()
+        ax.plot(mnInteraction['M'],mnInteraction['F'],'-o', linewidth=2, markersize=5)
+        ax.set_title('M-N interaction diagram')
+        ax.set_xlabel('Moment [kNm]')
+        ax.set_ylabel('Axial load [kN]')
+        plt.show()
+        return mnInteraction
