@@ -149,7 +149,7 @@ class MNclass:
             print('Total axial force: {} kN'.format(int(f_tot/1E3)))
             print('Total moment: {} kNm'.format(int(m_tot/1E6)))
         return f_tot,m_tot,f_s,f_con,eps_s,sigma_s
-    def mnCurve(self,xRatio=[0.16,0.2,0.3,0.4,0.5,0.8,0.9,1,1E99],n_layers=100,epsU=-0.0035,reverseMoment=False):
+    def mnCurve(self,xRatio=[0.16,0.2,0.3,0.4,0.5,0.8,0.9,1,1E99],n_layers=100,epsU=-0.0035,epsc1=-0.0022,reverseMoment=False,F_Ed=None,M_Ed=None,r2kPath=None,legend=False):
         F=[]
         M=[]
         xRatio=[i*self.h for i in xRatio]
@@ -161,7 +161,10 @@ class MNclass:
             f_tot,m_tot,f_s,f_con,eps_s,sigma_s=self.calcX0(eps0=epsU,x_NA=i, plotting=False, n_layers=n_layers)
             F.append(int(f_tot/1E3))
             M.append(int(m_tot/1E6))
-        #for i in xRatio[:-1]:
+        # pure compression
+        # f_tot,m_tot,f_s,f_con,eps_s,sigma_s=self.calc(eps0=epsc1,epsH=epsc1, plotting=False,n_layers=n_layers)
+        # F.append(int(f_tot/1E3))
+        # M.append(int(m_tot/1E6))
         for i in xRatio[-2::-1]:
             #print(-i)
             f_tot,m_tot,f_s,f_con,eps_s,sigma_s=self.calcXH(epsH=epsU,x_NA=i, plotting=False, n_layers=n_layers)
@@ -174,7 +177,15 @@ class MNclass:
         if reverseMoment:
             mnInteraction['M']=-mnInteraction['M']
         fig,ax = utils.plotBase()
-        ax.plot(mnInteraction['M'],mnInteraction['F'],'-o', linewidth=2, markersize=5)
+        ax.plot(mnInteraction['M'],mnInteraction['F'],'-o', linewidth=2, markersize=5,label='MN curve')
+        if r2kPath != None:
+            response2k = pd.read_csv(r2kPath)
+            response2k=np.array(response2k).T
+            ax.plot(response2k[0],response2k[1],'-', linewidth=2, markersize=5,label='Response2k')
+        if F_Ed != None:
+            ax.plot(M_Ed,F_Ed,'r+', mew=3, markersize=10,label='Design load')
+        if legend:
+            ax.legend()
         ax.set_title('M-N interaction diagram')
         ax.set_xlabel('Moment [kNm]')
         ax.set_ylabel('Axial load [kN]')

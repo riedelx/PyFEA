@@ -17,7 +17,7 @@ def plotStress(self,curve,title="",lbl="",xlim=(None,None),ylim=(None,None),plot
     return curve['strain'],curve['stress']
 
 class con1:
-    def __init__(self, ID, fc1, length, epsilon_t2 = 0.001, fc2_factor = 0.1, ft_factor = 1, characteristic = True,plotting=True,title="stl1"):
+    def __init__(self, ID, fc1, length, epsilon_t2 = 0.001, fc2_factor = 0.1, ft_factor = 1, characteristic = True,plotting=True,title="stl1",Ec2 = ''):
         self.resid_str = fc2_factor
         self.ID = ID
         self.fc1 = round(fc1, 1)
@@ -38,8 +38,12 @@ class con1:
         self.epsilon_1c = round(5 * fc1 / self.Ec0 /3, 4)
         self.Ec1 = int(round(fc1 / self.epsilon_1c, -2))
         self.alpha = min(max(0,round((self.Ec0 - self.Ec1)/self.Ec1,2)),1)
-        self.epsilon_2c = round(self.epsilon_1c + 3 * self.Gc / (2 * length * fc1), 4)
-        self.Ec2 = - int(round((1 - self.resid_str) * fc1 /(self.epsilon_2c - self.epsilon_1c), -2))
+        if Ec2 != '':
+            self.Ec2 = Ec2
+            self.epsilon_2c = round((self.fc1-self.fc2)/Ec2+self.epsilon_1c, 4)
+        else:
+            self.epsilon_2c = round(self.epsilon_1c + 3 * self.Gc / (2 * length * fc1), 4)
+            self.Ec2 = - int(round((1 - self.resid_str) * fc1 /(self.epsilon_2c - self.epsilon_1c), -2))
         self.Et1 = self.Ec0
         self.epsilon_1t = round(self.ft / self.Et1, 5)
         self.epsilon_2t = epsilon_t2

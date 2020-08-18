@@ -20,10 +20,11 @@ def df_index(df,val,col_ID): return df.index[df[col_ID] == val].tolist()[0]
 def df_value(df,val,col_ID0, col_ID1):
     return df.loc[df_index(df,val,col_ID0)][col_ID1]
 
-def plotBase():
-    fig = plt.figure(figsize = (6,4))
+def plotBase(grid=True,figsize=(6,4)):
+    fig = plt.figure(figsize = figsize)
     ax = fig.add_subplot(111)
-    ax.grid(which='major', linestyle=':', linewidth='0.5', color='black')
+    if grid:
+        ax.grid(which='major', linestyle=':', linewidth='0.5', color='black')
     return fig,ax
 
 # Intersection of two curves
@@ -106,7 +107,7 @@ x,y=intersection(x1,y1,x2,y2)
     xy0=xy0.T
     return xy0[:,0],xy0[:,1]
 
-def findExactPoint(curve1, coordinate,limY=True):
+def findExactPoint(curve1, coordinate,limY=True, multiple=False):
     if limY:
         curve2=np.array([[-9E99,np.inf],[coordinate,coordinate]])
     else:
@@ -115,4 +116,24 @@ def findExactPoint(curve1, coordinate,limY=True):
     try:
         return [float(tupl[0]),float(tupl[1])]
     except:
-        return [float(tupl[0][0]),float(tupl[1][0])]
+        if multiple:
+            return (tupl[0]),(tupl[1])
+        else:
+            return [float(tupl[0][0]),float(tupl[1][0])]
+
+def centroidX(points,discr=100):
+    x = [p[0] for p in points]
+    y = [p[1] for p in points]
+    points=np.array([x,y])
+    area=np.trapz([y[0],y[-1]], x=[x[0],x[-1]])
+    L=x[-1]-x[0]
+    L_incr=L/discr
+    moment=0
+    for i in range(discr):
+        x2=(i+1)*L_incr
+        y2=findExactPoint(points, x2,limY=False)[1]
+        x1=(i)*L_incr
+        y1=findExactPoint(points, x1,limY=False)[1]
+        area_temp=np.trapz([y1,y2], x=[x1,x2])
+        moment+=area_temp*(x2-L_incr/2)
+    return moment/area
