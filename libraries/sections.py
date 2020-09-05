@@ -37,6 +37,7 @@ class rcts:
         self.Df=Df
         self.Bw=Bw
         self.Bf=Bf
+        reinf_sect = pd.DataFrame(reinf_sect).sort_values(by=[2],ascending=False).astype(int).values.tolist()
         self.reinf_sect=reinf_sect
         self.h=Dw+Df
         area_w = Dw * Bw
@@ -56,11 +57,12 @@ class rcts:
             b=0
         return b
 
-class rss:
+class rcrs:
     def __init__(self, b, d, reinf_sect, plotting = True):
         self.b = b
         self.d = d
         self.h = d
+        reinf_sect = pd.DataFrame(reinf_sect).sort_values(by=[2],ascending=False).astype(int).values.tolist()
         self.reinf_sect=reinf_sect
         self.area = b * d
         self.centr = int(d/2)

@@ -3,11 +3,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import utils
 
-def plotStress(self,curve,title="",lbl="",xlim=(None,None),ylim=(None,None),plotting=True):
+def plotStress(self,curve,title="",lbl="",xlim=(None,None),ylim=(None,None),plotting=True,legend=True):
     if plotting:
         fig,ax = utils.plotBase()
         ax.plot(curve['strain'],curve['stress'],'-', linewidth=2, markersize=5,label=lbl)
-        ax.legend(loc='lower right')
+        if legend:
+            ax.legend(loc='lower right')
         ax.set_title(title)
         ax.set_xlabel('Strain')
         ax.set_ylabel('Stress [MPa]')
@@ -17,7 +18,7 @@ def plotStress(self,curve,title="",lbl="",xlim=(None,None),ylim=(None,None),plot
     return curve['strain'],curve['stress']
 
 class con1:
-    def __init__(self, ID, fc1, length, epsilon_t2 = 0.001, fc2_factor = 0.1, ft_factor = 1, characteristic = True,plotting=True,title="stl1",Ec2 = ''):
+    def __init__(self, ID, fc1, length, epsilon_t2 = 0.001, fc2_factor = 0.1, ft_factor = 1, characteristic = True,plotting=True,title="stl1",Ec2 = '',Et2 = '',strain_prec=5,legend=True):
         self.resid_str = fc2_factor
         self.ID = ID
         self.fc1 = round(fc1, 1)
@@ -35,23 +36,28 @@ class con1:
         self.Ec0 = round(int(21500*(self.fcm/10)**(1/3)),-2)
         self.poisson = 0.2
         self.Gc = round(250 * self.Gf, 1)
-        self.epsilon_1c = round(5 * fc1 / self.Ec0 /3, 4)
+        self.epsilon_1c = round(5 * fc1 / self.Ec0 /3, strain_prec)
         self.Ec1 = int(round(fc1 / self.epsilon_1c, -2))
         self.alpha = min(max(0,round((self.Ec0 - self.Ec1)/self.Ec1,2)),1)
         if Ec2 != '':
             self.Ec2 = Ec2
-            self.epsilon_2c = round((self.fc1-self.fc2)/Ec2+self.epsilon_1c, 4)
+            self.epsilon_2c = round((self.fc1-self.fc2)/-Ec2+self.epsilon_1c, strain_prec)
         else:
-            self.epsilon_2c = round(self.epsilon_1c + 3 * self.Gc / (2 * length * fc1), 4)
+            self.epsilon_2c = round(self.epsilon_1c + 3 * self.Gc / (2 * length * fc1), strain_prec)
             self.Ec2 = - int(round((1 - self.resid_str) * fc1 /(self.epsilon_2c - self.epsilon_1c), -2))
         self.Et1 = self.Ec0
-        self.epsilon_1t = round(self.ft / self.Et1, 5)
+        self.epsilon_1t = round(self.ft / self.Et1, strain_prec)
         self.epsilon_2t = epsilon_t2
-        self.Et2 = - int(round(self.ft /(self.epsilon_2t - self.epsilon_1t), -2))
+        if Et2 != '':
+            self.Et2 = Et2
+            self.epsilon_2t = round((self.ft)/-Et2+self.epsilon_1t, strain_prec)
+        else:
+            self.epsilon_2t = epsilon_t2
+            self.Et2 = - int(round(self.ft /(self.epsilon_2t - self.epsilon_1t), -2))
 
         self.df=pd.DataFrame([[0,self.epsilon_2t],[self.ft,self.epsilon_1t],
                               [0,0],[-self.fc1,-self.epsilon_1c],[-self.fc2,-self.epsilon_2c]],columns=['stress','strain'])
-        self.np=plotStress(self,self.df,lbl="con1",title=title)
+        self.np=plotStress(self,self.df,lbl="con1",title=title,legend=legend)
         self.np=np.array(self.np)
 
     def data_frame(self):
@@ -66,7 +72,7 @@ class con1:
         return df
 
 class stl1:
-    def __init__(self, ID, E1, fy, fu, epsilon_u,plotting=True,title="stl1",tension=True,compression=True):
+    def __init__(self, ID, E1, fy, fu, epsilon_u,plotting=True,title="stl1",tension=True,compression=True,legend=True):
         self.ID = ID
         self.E1 = E1
         self.fy = fy
@@ -82,7 +88,7 @@ class stl1:
         elif compression:
             self.df=-self.df
 
-        self.np=plotStress(self,self.df,lbl="stl1",title=title,xlim=(None,None),ylim=(None,None),plotting=plotting)
+        self.np=plotStress(self,self.df,lbl="stl1",title=title,xlim=(None,None),ylim=(None,None),plotting=plotting,legend=legend)
         self.np=np.array(self.np)
 
     def data_frame(self):
@@ -93,18 +99,15 @@ class stl1:
                       '$$e_{y}$$','$$e_{u}$$','$$mu$$']
         return df
 
-class EC2con:
-    def __init__(self, ID, fu, epsilon_u,plotting=True,title="EC2con",tension=True,compression=True):
+class esb1:
+    def __init__(self, ID, fu, epsilon_u=0.0035, plotting=True,title="esb1"):
         self.ID = ID
         self.fu = fu
-        self.epsilon_u2 = round(epsilon_u,3)
+        self.epsilon_u2 = round(epsilon_u,4)
         self.epsilon_u1 = 0.2*self.epsilon_u2
 
         self.df = pd.DataFrame([[0,0],[self.epsilon_u1,0],[self.epsilon_u1,self.fu],[self.epsilon_u2,self.fu]],columns=['strain','stress'])
-        if tension and compression:
-            self.df=pd.concat([-self.df.iloc[::-1],self.df])[::-1]
-        elif compression:
-            self.df=-self.df
+        self.df=-self.df
 
         self.np=plotStress(self,self.df,lbl="stl1",title=title,xlim=(None,None),ylim=(None,None),plotting=plotting)
         self.np=np.array(self.np)

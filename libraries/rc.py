@@ -148,17 +148,17 @@ class MNclass:
         if plotting:
             print('Total axial force: {} kN'.format(int(f_tot/1E3)))
             print('Total moment: {} kNm'.format(int(m_tot/1E6)))
-        return f_tot,m_tot,f_s,f_con,eps_s,sigma_s
-    def mnCurve(self,xRatio=[0.16,0.2,0.3,0.4,0.5,0.8,0.9,1,1E99],n_layers=100,epsU=-0.0035,epsc1=-0.0022,reverseMoment=False,F_Ed=None,M_Ed=None,r2kPath=None,legend=False):
+        return f_tot,m_tot #,f_s,f_con,eps_s,sigma_s
+    def mnCurve(self,xRatio=[0.16,0.2,0.3,0.4,0.5,0.8,0.9,1,1E99],n_layers=100,epsU=-0.0035,reverseMoment=False,F_Ed=None,M_Ed=None,r2kPath=None,legend=False):
         F=[]
         M=[]
         xRatio=[i*self.h for i in xRatio]
-        f_tot,m_tot,f_s,f_con,eps_s,sigma_s=self.calcX0(eps0=self.reinf.epsilon_u,x_NA=1E99, plotting=False, n_layers=n_layers)
+        f_tot,m_tot=self.calcX0(eps0=self.reinf.epsilon_u,x_NA=1E99, plotting=False, n_layers=n_layers)
         F.append(int(f_tot/1E3))
         M.append(int(m_tot/1E6))
         for i in xRatio:
             #print(i)
-            f_tot,m_tot,f_s,f_con,eps_s,sigma_s=self.calcX0(eps0=epsU,x_NA=i, plotting=False, n_layers=n_layers)
+            f_tot,m_tot=self.calcX0(eps0=epsU,x_NA=i, plotting=False, n_layers=n_layers)
             F.append(int(f_tot/1E3))
             M.append(int(m_tot/1E6))
         # pure compression
@@ -167,10 +167,10 @@ class MNclass:
         # M.append(int(m_tot/1E6))
         for i in xRatio[-2::-1]:
             #print(-i)
-            f_tot,m_tot,f_s,f_con,eps_s,sigma_s=self.calcXH(epsH=epsU,x_NA=i, plotting=False, n_layers=n_layers)
+            f_tot,m_tot=self.calcXH(epsH=epsU,x_NA=i, plotting=False, n_layers=n_layers)
             F.append(int(f_tot/1E3))
             M.append(int(m_tot/1E6))
-        f_tot,m_tot,f_s,f_con,eps_s,sigma_s=self.calcX0(eps0=self.reinf.epsilon_u,x_NA=1E99, plotting=False, n_layers=n_layers)
+        f_tot,m_tot=self.calcX0(eps0=self.reinf.epsilon_u,x_NA=1E99, plotting=False, n_layers=n_layers)
         F.append(int(f_tot/1E3))
         M.append(int(m_tot/1E6))
         mnInteraction = pd.DataFrame(np.array([F,M]).T,columns=['F','M'])#.sort_values(by=['x'])
