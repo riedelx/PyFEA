@@ -192,7 +192,7 @@ class beamcol2d:
         if forces_distributed != None:
             self.forces_distributed=pd.DataFrame(forces_distributed,columns=['element','n1','n2'])
         else:
-            self.forces_nodes = None
+            self.forces_distributed = None
         self.restraints=pd.DataFrame(restraints,columns=['node','x','y','rz'])
         # add element lengths based on point coordinates
         L,x1,x2,y1,y2=[],[],[],[],[]
@@ -306,3 +306,63 @@ class beamcol2d:
         self.axial=[self.f_elm[i*3] for i in range(int(len(self.f_elm)/3))]
         self.shear=[self.f_elm[i*3+1] for i in range(int(len(self.f_elm)/3))]
         self.moment=[self.f_elm[i*3+2] for i in range(int(len(self.f_elm)/3))]
+
+    def plot_moments(self,title='moment diagram',figsize=(10,4),scale=1,steps=10,fontsize=12,round=3):
+        scale = scale * np.max(self.elements['L'])/3 / np.max(np.abs(self.moment))
+        relativeOffset = scale * np.max(self.elements['L'])
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.grid(which='major', linestyle=':', linewidth='0.5', color='black')
+        element_summary=[]
+        for i in range(len(self.elements)):
+            #elements
+            x_el=[utils.df_value(self.nodes,self.elements['n1'][i],'name','x'),utils.df_value(self.nodes,self.elements['n2'][i],'name','x')]
+            y_el=[utils.df_value(self.nodes,self.elements['n1'][i],'name','y'),utils.df_value(self.nodes,self.elements['n2'][i],'name','y')]
+            ax.plot(x_el,y_el,'-', linewidth=3, marker='o',color = 'black')
+            #moments
+            x1,x2,y1,y2 = elmCoord(self.elements,self.nodes,i)
+            s=(y2-y1)/self.elements['L'][i]
+            c=(x2-x1)/self.elements['L'][i]
+            if self.elements['name'][i] in self.forces_distributed['element'].values:
+                x_mom=[x_el[0]]
+                y_mom=[y_el[0]]
+                moments=[]
+                L=self.elements['L'][i]
+                steps = steps
+                w1 = utils.df_value(self.forces_distributed,self.elements['name'][i],'element','n1')
+                w2 = utils.df_value(self.forces_distributed,self.elements['name'][i],'element','n2')
+                for j in range(0,steps+1):
+                    x=L/steps * j
+                    w2_temp=w1+(w2-w1)*x/L
+                    # area=np.trapz([w1,w2_temp], x=[0,L])
+                    # leverarm = w2_temp-utils.centroidX([[0,w1],[x,w2_temp]])
+                    area=(w1+w2_temp)/2*x
+                    if area!=0: leverarm=(w1*x**2/2+(w2_temp-w1)*x**2/6)/area
+                    else: leverarm=0
+                    moment=-(-self.moment[i*2]+self.shear[i*2]*x+area*leverarm) #upsidedown moments
+                    moments.append(moment)
+                    x_mom.append(utils.df_value(self.nodes,self.elements['n1'][i],'name','x')+x+moment*s*scale)
+                    y_mom.append(utils.df_value(self.nodes,self.elements['n1'][i],'name','y')+moment*c*scale)
+                # x_mom.append(utils.df_value(self.nodes,self.elements['n2'][i],'name','x')+s*self.moment[i*2+1]*scale)
+                # y_mom.append(utils.df_value(self.nodes,self.elements['n2'][i],'name','y')+c*self.moment[i*2+1]*scale)
+                x_mom.append(x_el[1])
+                y_mom.append(y_el[1])
+                ax.text(x_mom[1]+relativeOffset*c,y_mom[1]+utils.matchSign(relativeOffset,y_mom[1]), utils.round_sig(moments[0],round), fontsize=fontsize)
+                ax.text(x_mom[-2]-4*relativeOffset*c,y_mom[-2]+utils.matchSign(relativeOffset,y_mom[-2]), utils.round_sig(moments[-1],round), fontsize=fontsize)
+                if utils.maxAbs(moments[0],moments[-1])>0:indice = min((val, idx) for (idx, val) in enumerate(moments))[1]
+                else:indice = max((val, idx) for (idx, val) in enumerate(moments))[1]
+                ax.text(x_mom[indice+1],y_mom[indice]+utils.matchSign(relativeOffset,y_mom[indice+1]), utils.round_sig(moments[indice],round), fontsize=fontsize)
+                element_summary.append([self.elements['name'][i],utils.round_sig(moments[0],round),utils.round_sig(moments[-1],round),utils.round_sig(moments[indice],round),self.shear[i*2],self.shear[i*2+1]])
+            else:
+                x_mom=[x_el[0],utils.df_value(self.nodes,self.elements['n1'][i],'name','x')+s*self.moment[i*2]*scale,utils.df_value(self.nodes,self.elements['n2'][i],'name','x')-s*self.moment[i*2+1]*scale,x_el[1]]
+                y_mom=[y_el[0],utils.df_value(self.nodes,self.elements['n1'][i],'name','y')+c*self.moment[i*2]*scale,utils.df_value(self.nodes,self.elements['n2'][i],'name','y')-c*self.moment[i*2+1]*scale,y_el[1]]
+                ax.text(x_mom[1]+relativeOffset*c,y_mom[1]+utils.matchSign(relativeOffset,y_mom[1]), utils.round_sig(self.moment[i*2],round), fontsize=fontsize)
+                ax.text(x_mom[-2]-4*relativeOffset*c,y_mom[-2]+utils.matchSign(relativeOffset,y_mom[-2]), utils.round_sig(self.moment[i*2+1],round), fontsize=fontsize)
+                element_summary.append([self.elements['name'][i],utils.round_sig(self.moment[i*2],round),utils.round_sig(self.moment[i*2+1],round),(utils.round_sig(self.moment[i*2],round)+utils.round_sig(self.moment[i*2+1],round))/2,self.shear[i*2],self.shear[i*2+1]])
+            ax.plot(x_mom,y_mom,'-', linewidth=2, marker='',color = 'blue')
+        self.element_summary=pd.DataFrame(element_summary,columns=['name','m1','m2','mMid','S1','S2'])
+        plt.axis('equal')
+        ax.set_title(title)
+        plt.show()
+
+def textOffset(val,relativeOffset,cosSin,end=1):
+    if val >= 0 and end==1: return val+relativeOffset*cossin

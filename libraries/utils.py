@@ -4,7 +4,23 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from math import log10, floor
 
+def round_sig(x, sig=2):
+    if x ==0: return 0
+    else: return round(x, sig-int(floor(log10(abs(x))))-1)
+
+def maxAbs(a,b):
+    if np.abs(a) >= np.abs(b):
+        return a
+    else:
+        return b
+
+def matchSign(a,b):
+    if b >= 0:
+        return a
+    else:
+        return -a
 
 def find_nearest(array, value): #numpy
     array = np.asarray(array)
@@ -122,6 +138,7 @@ def findExactPoint(curve1, coordinate,limY=True, multiple=False):
             return [float(tupl[0][0]),float(tupl[1][0])]
 
 def centroidX(points,discr=100):
+    #points=[[x1,y1],[x2,y2]]
     x = [p[0] for p in points]
     y = [p[1] for p in points]
     points=np.array([x,y])
@@ -130,7 +147,10 @@ def centroidX(points,discr=100):
     L_incr=L/discr
     moment=0
     for i in range(discr):
-        x2=(i+1)*L_incr
+        if i == discr-1:
+            x2=x[-1]
+        else:
+            x2=(i+1)*L_incr
         y2=findExactPoint(points, x2,limY=False)[1]
         x1=(i)*L_incr
         y1=findExactPoint(points, x1,limY=False)[1]
