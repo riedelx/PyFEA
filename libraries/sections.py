@@ -8,7 +8,7 @@ import sys
 import materials as mat
 import utils
 
-def plotFunc(self,x_coordinates,y_coordinates):
+def plotFunc(self,x_coordinates,y_coordinates,title='section layout'):
     fig = plt.figure(figsize = (6,4))
     ax = fig.add_subplot(111)
     ax.grid(which='major', linestyle=':', linewidth='0.5', color='black')
@@ -27,12 +27,12 @@ def plotFunc(self,x_coordinates,y_coordinates):
             ax.add_patch(circ)
     ax.plot(self.centr,0,'r+',markersize=10,linewidth=8)
     ax.add_artist(circ)
-    ax.set_title('section layout')
+    ax.set_title(title)
     ax.set_aspect('equal', 'box')
     plt.show()
 
 class rcts:
-    def __init__(self,Df,Dw,Bf,Bw,reinf_sect,plotting=True):
+    def __init__(self,Df,Dw,Bf,Bw,reinf_sect,plotting=True,title='section layout'):
         self.Dw=Dw
         self.Df=Df
         self.Bw=Bw
@@ -47,7 +47,7 @@ class rcts:
         if plotting:
             x_coordinates = [0,self.Dw+0,self.Dw+0,self.h,self.h,self.Dw+0,self.Dw+0,0,0]
             y_coordinates = [self.Bw/2,self.Bw/2,self.Bf/2,self.Bf/2,-self.Bf/2,-self.Bf/2,-self.Bw/2,-self.Bw/2,self.Bw/2]
-            plotFunc(self,x_coordinates,y_coordinates)
+            plotFunc(self,x_coordinates,y_coordinates,title=title)
     def width(self,x):
         if (x >= 0 and x <= self.Dw):
             b=self.Bw
@@ -58,7 +58,7 @@ class rcts:
         return b
 
 class rcrs:
-    def __init__(self, b, d, reinf_sect, plotting = True):
+    def __init__(self, b, d, reinf_sect, plotting = True,title='section layout'):
         self.b = b
         self.d = d
         self.h = d
@@ -69,7 +69,7 @@ class rcrs:
         if plotting:
             x_coordinates = [0,d,d,0,0]
             y_coordinates = [b/2,b/2,-b/2,-b/2,b/2]
-            plotFunc(self,x_coordinates,y_coordinates)
+            plotFunc(self,x_coordinates,y_coordinates,title=title)
     def width(self,x):
         if (x >= 0 and x <= self.d):
             b=self.b

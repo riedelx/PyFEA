@@ -18,7 +18,7 @@ def plotStress(self,curve,title="",lbl="",xlim=(None,None),ylim=(None,None),plot
     return curve['strain'],curve['stress']
 
 class con1:
-    def __init__(self, ID, fc1, length, epsilon_t2 = 0.001, fc2_factor = 0.1, ft_factor = 1, characteristic = True,plotting=True,title="stl1",Ec2 = '',Et2 = '',strain_prec=5,legend=True):
+    def __init__(self, ID, fc1, length, epsilon_t2 = 0.001, fc2_factor = 0.1, ft_factor = 1, characteristic = True,plotting=True,title="con1",Ec2 = '',Et2 = '',strain_prec=5,legend=True):
         self.resid_str = fc2_factor
         self.ID = ID
         self.fc1 = round(fc1, 1)
@@ -57,8 +57,13 @@ class con1:
 
         self.df=pd.DataFrame([[0,self.epsilon_2t],[self.ft,self.epsilon_1t],
                               [0,0],[-self.fc1,-self.epsilon_1c],[-self.fc2,-self.epsilon_2c]],columns=['stress','strain'])
-        self.np=plotStress(self,self.df,lbl="con1",title=title,legend=legend)
+        self.np=plotStress(self,self.df,lbl="con1",plotting=plotting,title=title,legend=legend)
         self.np=np.array(self.np)
+
+    def adaptic_print(self):
+        line = utils.str_joint([self.ID,'con1', self.Ec1, self.fc1, self.Ec2, self.fc2, self.Et1,
+                                      self.ft, self.Et2, self.alpha])
+        return line
 
     def data_frame(self):
         data = np.array([[self.ID, self.length, self.fc1, self.fc2, self.ft, self.Ec0, self.Ec1,
@@ -116,3 +121,123 @@ class esb1:
         data = np.array([[self.ID, self.fu, self.epsilon_u1, self.epsilon_u2]])
         df = pd.DataFrame(data,index=data[:,0])
         df.columns = ['ID', '$$f_{u1}[MPa]$$', '$$e_{u1}$$', '$$e_{u2}$$']
+
+class stmdl2:
+    # this is con1 ADAPTIC model
+    def __init__(self,ec0,muec1,strnc1,stresc1,et0,muet1,strnt1,pset,crks,quad):#pseto,crkso,
+        # This subroutine calculates the stress at a monitoring point for
+        # material MODEL(2).
+
+        # Establish the stress depending on the sign of the applied
+        # strain relative to the initial plastic set and crack strain
+        self.ec0=ec0 # Secant compressive stiffness
+        self.muec1=muec1 # Compressive softening stiffness
+        self.strnc1=strnc1 # strain at residual compressive strength
+        self.stresc1=stresc1 # residual compressive strength
+        self.et0=et0 # Tensile stiffness
+        self.muet1=muet1 # Tensile softening stiffness
+        self.strnt1=strnt1 # strain at peak tensile strength ?
+        self.pseto=pseto # plastic strain in compression at the start of the step,
+                         # represents the intersection of the unloading branch with the strain axis
+        self.crkso=crkso # plastic strain in tension at the start of the step
+        self.pset=pseto
+        self.crks=crkso
+        self.quad=quad
+
+    def stress(self, strn):
+        self.strn=strn
+        if(self.strn<=self.pseto):      # Compressive strain increment
+            # NOTE: quad is the relative difference between the initial
+            #       compressive tangent modulus and the secant modulus
+
+            self.ec0t=(1+self.quad)*self.ec0 # initial tangent modulus in compression
+
+            if(self.quad>0): # implies quadratic initial compressive response
+                self.strnc0=(self.stresc1-self.muec1*self.strnc1)/(self.ec0-self.muec1)
+
+            # Obtain the stress assuming elastic conditions, and determine
+            # the force from the limiting curve
+            self.strese=self.ec0t*(self.strn-self.pseto) # elastic stress based on ec0t
+            # this gives stress in intial compressive response if quad = 0
+
+            if(self.quad>0 and self.strn>self.strnc0): # initial quadratic response
+                # pseto>=strn>strnc0
+
+                #quadratic formulation for stress:
+                self.stresl=self.strn*(self.ec0t+(self.ec0-self.ec0t)*self.strn/self.strnc0)
+                self.etan=self.ec0t+2*(self.ec0-self.ec0t)*self.strn/self.strnc0
+
+            elif(strn>strnc1): # softening branch
+
+                self.stresl=self.stresc1+self.muec1*(self.strn-self.strnc1)
+                self.etan=self.muec1
+
+            else: # residual compressive strength
+
+                self.stresl=self.stresc1
+                self.etan=0.0
+
+            # Establish the stress and the plastic set
+
+            if(self.strese>self.stresl):
+
+                self.stres=self.strese
+                self.pset=self.pseto
+                self.etan=self.ec0t
+
+            else:
+
+                self.stres=self.stresl
+                self.pset=self.strn-self.stresl/self.ec0t
+
+            self.crks=self.crkso
+
+        elif(self.et0==0.0 or self.strn<self.crkso+self.pseto):   # Cracked zone
+            self.stres=0.0
+            self.pset=self.pseto
+            self.crks=self.crkso
+            self.etan=0
+
+        else:   # Tensile strain increment
+
+            # Obtain the stress assuming elastic conditions, and
+            # determine the force from the limiting curve
+
+            self.strese=self.et0*(self.strn-(self.pseto+self.crkso))
+
+            self.stresl=self.muet1*(self.strn-(self.pseto+self.strnt1))+self.et0*self.strnt1 # my modification
+
+            if(self.stresl>0.0):
+
+                self.etan=self.muet1
+
+            else:
+
+                self.stresl=0.0
+                self.etan=0.0
+
+            # Establish the stress and the plastic set
+
+            if(self.strese<self.stresl): # initial elastic tensile response
+
+                self.stres=self.strese
+                self.etan=self.et0
+                self.crks=self.crkso
+
+            else: # tensile softening
+
+                self.stres=self.stresl
+                self.crks=self.strn-self.pseto-self.stresl/self.et0
+
+            self.pset=self.pseto
+        return self.stres
+
+    def plot(self,title='stmdl2',step_size=0.001,legend=True,ranges=''):
+        if ranges=='':ranges=[-np.absolute(self.strnc1),np.absolute(self.strnt1)]
+        strain=np.arange(ranges[0],ranges[1],step_size)
+        stress=np.array([self.stress(i) for i in strain])
+        strain=strain.reshape(len(strain),1)
+        stress=stress.reshape(len(stress),1)
+        self.df=pd.DataFrame(np.hstack((stress,strain)),columns=['stress','strain'])
+        self.np=plotStress(self,self.df,lbl="stmdl2",plotting='True',title=title,legend=legend)
+        self.np=np.array(self.np)
