@@ -18,7 +18,7 @@ def plotStress(self,curve,title="",lbl="",xlim=(None,None),ylim=(None,None),plot
     return curve['strain'],curve['stress']
 
 class con1:
-    def __init__(self, ID, fc1, length, epsilon_t2 = 0.001, fc2_factor = 0.1, ft_factor = 1, characteristic = True,plotting=True,title="con1",Ec2 = '',Et2 = '',strain_prec=5,legend=True):
+    def __init__(self, ID, fc1, length, epsilon_t2 = 0.001, fc2_factor = 0.1, ft_factor = 1, characteristic = True,plotting=True,title="con1",Ec2 = '',Et2 = '',strain_prec=6,legend=True):
         self.resid_str = fc2_factor
         self.ID = ID
         self.fc1 = round(fc1, 1)
