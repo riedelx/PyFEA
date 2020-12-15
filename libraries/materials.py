@@ -60,20 +60,25 @@ class con1:
         self.np=plotStress(self,self.df,lbl="con1",plotting=plotting,title=title,legend=legend)
         self.np=np.array(self.np)
 
-    def adaptic_print(self):
-        line = utils.str_joint([self.ID,'con1', self.Ec1, self.fc1, self.Ec2, self.fc2, self.Et1,
-                                      self.ft, self.Et2, self.alpha])
-        return line
+    def adaptic_print(self): return self.ID,'con1', self.Ec1, self.fc1, self.Ec2, self.fc2, self.Et1,self.ft, self.Et2
 
-    def data_frame(self):
+    def stmdl2_print(self):return self.Ec1,self.Ec2,-self.epsilon_2c,-self.fc2,self.Et1,self.Et2,self.epsilon_2t
+
+    def data_frame(self,alpha=''):
+        if alpha == '':
+            alphac=-self.alpha
+            alphat=self.alpha
+        else:
+            alphac=alpha[0]
+            alphat=alpha[1]
         data = np.array([[self.ID, self.length, self.fc1, self.fc2, self.ft, self.Ec0, self.Ec1,
                           self.Ec2, self.Et1, self.Et2, self.Gf, self.Gc, self.epsilon_1c,
-                          self.epsilon_2c, self.epsilon_1t, self.epsilon_2t,  self.alpha]])
+                          self.epsilon_2c, self.epsilon_1t, self.epsilon_2t, alphac, alphat]])
         df = pd.DataFrame(data,index=data[:,0])
         df.columns = ['ID', '$$h[mm]$$', '$$f_{c1}[MPa]$$','$$f_{c2}[MPa]$$', '$$f_{t}[MPa]$$',
                       '$$E_{c0}[MPa]$$','$$E_{c1}[MPa]$$','$$E_{c2}[MPa]$$','$$E_{t1}[MPa]$$',
                       '$$E_{t2}[MPa]$$','$$G_{f}[N/mm]$$','$$G_{c}[N/mm]$$','$$e_{c1}$$',
-                      '$$e_{c2}$$','$$e_{t1}$$', '$$e_{t2}$$', '$$alpha$$']
+                      '$$e_{c2}$$','$$e_{t1}$$', '$$e_{t2}$$', '$$alpha_{c}$$', '$$alpha_{t}$$']
         return df
 
 class stl1:
