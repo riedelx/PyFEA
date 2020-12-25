@@ -37,7 +37,7 @@ class MNclass:
                 ax.plot([0,h],[eps0,epsH],'-', linewidth=2, markersize=5)
                 ax.plot([0,h],[0,0],'-', linewidth=2, markersize=5,color='black')
                 ax.set_title('Strain distribution within section')
-                ax.set_xlabel('Height [mm]')
+                ax.set_xlabel('Distance [mm]')
                 ax.set_ylabel('Strain []')
                 ax.set_xlim(0,h)
                 ax.set_ylim(None,None)
@@ -49,7 +49,7 @@ class MNclass:
                 ax.plot([0,self.h],[eps0,epsH],'-', linewidth=2, markersize=5)
                 ax.plot([0,self.h],[0,0],'-', linewidth=2, markersize=5,color='black')
                 ax.set_title('Strain distribution within section')
-                ax.set_xlabel('Height [mm]')
+                ax.set_xlabel('Distance [mm]')
                 ax.set_ylabel('Strain []')
                 ax.set_xlim(0,self.h)
                 ax.set_ylim(None,None)
@@ -111,7 +111,7 @@ class MNclass:
             ax.plot(x_sEnv,sigma_sEnv,'--', linewidth=2, markersize=5)
             ax.plot([0,self.h],[0,0],'-', linewidth=2, markersize=5,color='black')
             ax.set_title('Steel stress distribution within section')
-            ax.set_xlabel('Section height [mm]')
+            ax.set_xlabel('Distance [mm]')
             ax.set_ylabel('Stress [MPa]')
             ax.set_xlim(0,self.h)
             ax.set_ylim(None,None)
@@ -127,12 +127,7 @@ class MNclass:
             x_con.append(x_i)
             b_i=self.section.width(x_i)
             e=self.epsilonFunc(x_i,epsilon)
-            try:
-                self.concr.crks=0
-                self.concr.pset=0
-                self.concr.stress(e)
-                s=self.concr.stres
-            except: s=findPointZero(self.concr.np,e)
+            s=findPointZero(self.concr.np,e)
             sigma_con.append(s)
             f_con_i=s*b_i*h_i
             f_con.append(f_con_i)
@@ -143,7 +138,7 @@ class MNclass:
             ax.plot(x_con,sigma_con,'-', linewidth=2, markersize=5)
             ax.plot([0,self.h],[0,0],'-', linewidth=2, markersize=5,color='black')
             ax.set_title('Concrete stress distribution within section')
-            ax.set_xlabel('Height [mm]')
+            ax.set_xlabel('Distance [mm]')
             ax.set_ylabel('Stress [MPa]')
             ax.set_xlim(0,self.h)
             ax.set_ylim(None,None)
@@ -154,7 +149,7 @@ class MNclass:
             print('Total axial force: {} kN'.format(int(f_tot/1E3)))
             print('Total moment: {} kNm'.format(int(m_tot/1E6)))
         return f_tot,m_tot #,f_s,f_con,eps_s,sigma_s
-    def mnCurve(self,xRatio=[0.16,0.2,0.3,0.4,0.5,0.8,0.9,1,1E99],n_layers=100,epsU=-0.0035,reverseMoment=False,points=None,r2kPath=None,legend=False,labels=None):
+    def mnCurve(self,xRatio=[0.16,0.2,0.3,0.4,0.5,0.8,0.9,1,1E99],n_layers=100,epsU=-0.0035,reverseMoment=False,F_Ed=None,M_Ed=None,r2kPath=None,legend=False):
         F=[]
         M=[]
         xRatio=[i*self.h for i in xRatio]
@@ -182,18 +177,13 @@ class MNclass:
         if reverseMoment:
             mnInteraction['M']=-mnInteraction['M']
         fig,ax = utils.plotBase()
-        if labels!=None: ax.plot(mnInteraction['M'],mnInteraction['F'],'-o', linewidth=2, markersize=5,label=labels[0])
-        else: ax.plot(mnInteraction['M'],mnInteraction['F'],'-o', linewidth=2, markersize=5,label='MN curve')
+        ax.plot(mnInteraction['M'],mnInteraction['F'],'-o', linewidth=2, markersize=5,label='MN curve')
         if r2kPath != None:
             response2k = pd.read_csv(r2kPath)
             response2k=np.array(response2k).T
-            if labels!=None: ax.plot(response2k[0],response2k[1],'-', linewidth=2, markersize=5,label=labels[1])
-            else: ax.plot(response2k[0],response2k[1],'-', linewidth=2, markersize=5,label='Response2k')
-        if points != None:
-            for i in range(len(points)):
-                M_Ed,F_Ed=points[i][0],points[i][1]
-                if labels!=None: ax.plot(M_Ed,F_Ed,marker='+', color=utils.colours[i+3],mew=3, markersize=10,label=labels[i+2])
-                else: ax.plot(M_Ed,F_Ed,'r+', mew=3, markersize=10,label='Design load')
+            ax.plot(response2k[0],response2k[1],'-', linewidth=2, markersize=5,label='Response2k')
+        if F_Ed != None:
+            ax.plot(M_Ed,F_Ed,'r+', mew=3, markersize=10,label='Design load')
         if legend:
             ax.legend()
         ax.set_title('M-N interaction diagram')

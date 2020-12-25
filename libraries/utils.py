@@ -6,6 +6,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from math import log10, floor
 
+colours = ['C0','C1','C2','C3','C4','C5','C6','C6','C7','C8','C9']
+
+#====================================================#
+# pandas
+def removeRows(df,labels,colID='ID'):
+    idxs = []
+    for i in labels:
+        idxs.append(df_index(df,i,colID))
+    return df.drop(labels=idxs,axis=0).reset_index(drop=True)
+#====================================================#
+
 def round_sig(x, sig=2):
     if x ==0: return 0
     else: return round(x, sig-int(floor(log10(abs(x))))-1)
@@ -44,11 +55,6 @@ def plotBase(grid=True,figsize=(6,4)):
     return fig,ax
 
 # Intersection of two curves
-"""
-Sukhbinder
-5 April 2017
-Based on:
-"""
 def _rect_inter_inner(x1,x2):
     n1=x1.shape[0]-1
     n2=x2.shape[0]-1
