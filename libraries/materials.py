@@ -4,107 +4,89 @@ import math
 import matplotlib.pyplot as plt
 import utils
 
-def plotStress(self,curve,title="",lbl="",xlim=(None,None),ylim=(None,None),plotting=True,legend=True):
-    if plotting:
-        fig,ax = utils.plotBase()
-        ax.plot(curve['strain'],curve['stress'],'-', linewidth=2, markersize=5,label=lbl)
-        if legend:
-            ax.legend(loc='lower right')
-        ax.set_title(title)
-        ax.set_xlabel('Strain [ε]')
-        ax.set_ylabel('Stress [MPa]')
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
-        plt.show()
-    return curve['strain'],curve['stress']
+def plotStress(curve,title="",xlim=(None,None),ylim=(None,None)):
+    fig,ax = utils.plotBase()
+    ax.plot(curve[0],curve[1],'-', linewidth=2, markersize=5)
+    ax.set_title(title)
+    ax.set_xlabel('Strain [ε]')
+    ax.set_ylabel('Stress [MPa]')
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    plt.show()
 
 class con1:
-    def __init__(self,ec0,muec1,strnc1,stresc1,et0,muet1,strnt1,alphac,alphat,pseto=0,crkso=0,strain_prec=6):#pseto,crkso,
+    def __init__(self,Ec1,fc1,Ec2,fc2,Et1,ft,Et2,alphac,alphat,pset=0,crks=0):#pset,crks,
         # This subroutine calculates the stress at a monitoring point for
         # material MODEL(2).
 
         # Establish the stress depending on the sign of the applied
         # strain relative to the initial plastic set and crack strain
-        self.ec0=ec0 # Secant compressive stiffness
-        self.muec1=muec1 # Compressive softening secant stiffness
-        self.strnc1=strnc1 # strain at residual compressive strength
-        self.stresc1=stresc1 # residual compressive strength
-        self.et0=et0 # Secant tensile stiffness
-        self.muet1=muet1 # Tensile softening secant stiffness
-        self.strnt1=strnt1 # strain when tensile stress reaches 0 ?
-        self.pset=pseto # plastic strain in compression
-        self.crks=crkso # plastic strain in tension
-        self.pset=pseto
-        self.crks=crkso
+        self.Ec1=Ec1 # secant compressive stiffness
+        self.fc1=fc1 # peak compressive strength
+        self.Ec2=Ec2 # compressive softening secant stiffness
+        self.fc2=fc2 # residual compressive strength
+        self.Et1=Et1 # secant tensile stiffness
+        self.ft=ft # peak tensile strength
+        self.Et2=Et2 # tensile softening secant stiffness
+        self.pset=pset # plastic strain in compression
+        self.crks=crks # cracking strain in tension
         self.alphac=alphac
         self.alphat=alphat
+        self.adaptic = [Ec1,-fc1,Ec2,-fc2,Et1,ft,Et2,alphac,alphat]
+        self.Ec0=(1+np.abs(alphac))*Ec1 # secant compressive stiffness
+        self.eps_c1=fc1/Ec1 # strain at peak compressive strength
+        self.eps_c2=self.eps_c1-fc1/Ec2 # strain at residual compressive strength
+        self.eps_t1=ft/Et1 # strain at peak tensile strength
+        self.eps_t2=self.eps_t1-ft/Et2 # strain when tensile stress reaches 0
 
-        # Derived, not used in stress
-        self.ec0t=round((1+np.abs(alphac))*ec0)
-        self.strnc0=round((stresc1-muec1*strnc1)/(ec0-muec1),strain_prec)
-        self.stresc0=round(self.strnc0*self.ec0,1)
-        self.strnt0=round(-muet1*strnt1/(et0-muet1),strain_prec)
-        if alphat>0: self.et0t=round((1+np.abs(alphat))*et0)
-        else: self.et0t=et0
-        self.ft=round(self.et0*self.strnt0,1) # Secant compressive stiffness
+        # # Establish the stress depending on the sign of the applied
+        # # strain relative to the initial plastic set and crack strain
+        # self.Ec1=Ec1 # secant compressive stiffness
+        # self.Ec2=Ec2 # compressive softening secant stiffness
+        # self.eps_c2=eps_c2 # strain at residual compressive strength
+        # self.fc2=fc2 # residual compressive strength
+        # self.Et1=Et1 # secant tensile stiffness
+        # self.Et2=Et2 # tensile softening secant stiffness
+        # self.eps_t2=eps_t2 # strain when tensile stress reaches 0
+        # self.pset=pset # plastic strain in compression
+        # self.crks=crks # cracking strain in tension
+        # self.alphac=alphac
+        # self.alphat=alphat
+        # self.input = [Ec1,Ec2,eps_c2,fc2,Et1,Et2,eps_t2,alphac,alphat]
+        # # Derived, not used in stress
+        # self.Ec0=(1+np.abs(alphac))*Ec1 # secant compressive stiffness
+        # self.eps_c1=(fc2-Ec2*eps_c2)/(Ec1-Ec2) # strain at peak compressive strength
+        # self.fc1=self.eps_c1*self.Ec1 # peak compressive strength
+        # self.eps_t1=-Et2*eps_t2/(Et1-Et2) # strain at peak tensile strength
+        # if alphat>0: self.et0t=(1+np.abs(alphat))*Et1 # secant tensile stiffness
+        # else: self.et0t=Et1
+        # self.ft=self.Et1*self.eps_t1 # peak tensile strength
 
-        data = np.array([['stmdl2',self.stresc0, self.stresc1, self.ft, self.ec0t, self.ec0,
-                          self.muec1, self.et0, self.muet1, self.strnc0,
-                          self.strnc1, self.strnt0, self.strnt1, self.alphac, self.alphat]])
+        data = np.array([[type(self).__name__,self.fc1, self.fc2, self.ft, self.Ec0, self.Ec1,
+                          self.Ec2, self.Et1, self.Et2, self.eps_c1,
+                          self.eps_c2, self.eps_t1, self.eps_t2, self.alphac, self.alphat]])
         self.prop = pd.DataFrame(data,index=data[:,0])
-        self.prop.columns = ['$$ID$$','$$f_{c1}[MPa]$$','$$f_{c2}[MPa]$$', '$$f_{t}[MPa]$$','$$E_{c0}[MPa]$$','$$E_{c1}[MPa]$$','$$E_{c2}[MPa]$$',
+        self.prop.columns = ['type','$$f_{c1}[MPa]$$','$$f_{c2}[MPa]$$', '$$f_{t}[MPa]$$','$$E_{c0}[MPa]$$','$$E_{c1}[MPa]$$','$$E_{c2}[MPa]$$',
             '$$E_{t1}[MPa]$$','$$E_{t2}[MPa]$$','$$e_{c1}$$','$$e_{c2}$$','$$e_{t1}$$', '$$e_{t2}$$', '$$alpha_{c}$$', '$$alpha_{t}$$']
 
-    @classmethod # alternative constructor
-    def from_ADAPTIC(cls, ec1,fc1,ec2,fc2,et1,ft,et2,alphac,alphat,strain_prec=6):
-        strnc1=round(-fc1/ec1+(fc1-fc2)/ec2,strain_prec)
-        strnt1=round(ft/et1-ft/et2,strain_prec)
-        return cls(ec0=ec1,muec1=ec2,strnc1=strnc1,stresc1=-fc2,et0=et1,muet1=et2,strnt1=strnt1,alphac=alphac,alphat=alphat,strain_prec=strain_prec)
+    # @classmethod # alternative constructor
+    # def from_ADAPTIC(cls, ec1,fc1,ec2,fc2,et1,ft,et2,alphac,alphat):
+    #     eps_c2=-fc1/ec1+(fc1-fc2)/ec2
+    #     eps_t2=ft/et1-ft/et2
+    #     return cls(Ec1=ec1,Ec2=ec2,eps_c2=eps_c2,fc2=-fc2,Et1=et1,Et2=et2,eps_t2=eps_t2,alphac=alphac,alphat=alphat)
 
-    def y_E1(self,x,E1,E0,x0,x1,y0,printing=True):
-        a=(E0-E1)/2/(x0-x1)
-        b=E0-2*a*x0
-        c=y0-a*x0**2-b*x0
-        if printing: print('y(x) = {0}x**2+{1}x+{2}'.format(a,b,c))
-        return (x-x0)**2*(E0-E1)/(2*(x0-x1))+E0*(x-x0)+y0
-
-    def y_S(self,x,S,E0,x0,x1,y0,printing=True):
-        a=2*(E0-S)/2/(x0-x1)
-        b=E0-2*a*x0
-        c=y0-a*x0**2-b*x0
-        if printing: print('y(x) = {0}x**2+{1}x+{2}'.format(a,b,c))
-        return (x-x0)**2*(E0-S)/(x0-x1)+E0*(x-x0)+y0
-
-    def y_prime_E1(self,x,E1,E0,x0,x1,y0,printing=True):
-        a=(x*(E0-E1)+x0*E1-x1*E0)/(x0-x1)
-        b=(x**2*(E1-E0)-x0**2*(E0+E1)+2*x0*x1*E0)/(2*(x0-x1))+y0
-        if printing: print('y\'(x) = {0}x+{1}'.format(a,b))
-        return (a,b)
-
-    def y_prime_S(self,x,S,E0,x0,x1,y0,printing=True):
-        a=(x*2*(E0-S)+x0*(2*S-E0)-x1*E0)/(x0-x1)
-        b=(S*x**2-S*x0**2-x**2*E0+x0*x1*E0)/(x0-x1)+y0
-        if printing: print('y\'(x) = {0}x+{1}'.format(a,b))
-        return (a,b)
-
-    def secant(self,S,x0,y0,printing=True):
-        a=S
-        b=y0-a*x0
-        if printing: print('secant: y(x) = {0}x+{1}'.format(a,b))
-        return (a,b)
-
-    def stress(self,strn,printing=False,retn='stress'):
+    def stress(self,strn):
         self.strn=strn
 
-        ec0=self.ec0 # Secant compressive stiffness
-        muec1=self.muec1 # Compressive softening stiffness
-        strnc1=self.strnc1 # strain at residual compressive strength
-        stresc1=self.stresc1 # residual compressive strength
-        et0=self.et0 # Tensile stiffness
-        muet1=self.muet1 # Tensile softening stiffness
-        strnt1=self.strnt1 # strain at peak tensile strength ?
+        ec0=self.Ec1 # secant compressive stiffness
+        muec1=self.Ec2 # compressive softening secant stiffness
+        strnc1=self.eps_c2 # strain at residual compressive strength
+        stresc1=self.fc2 # residual compressive strength
+        et0=self.Et1 # secant tensile stiffness
+        muet1=self.Et2 # tensile softening secant stiffness
+        strnt1=self.eps_t2 # strain when tensile stress reaches 0
         pseto=self.pset # plastic strain in compression at the start of the step, represents the intersection of the unloading branch with the strain axis
-        crkso=self.crks # plastic strain in tension at the start of the step, represents the intersection of the unloading branch with the strain axis
+        crkso=self.crks # cracking strain in tension at the start of the step, represents the intersection of the unloading branch with the strain axis
         alphac=self.alphac
         alphat=self.alphat
 
@@ -241,259 +223,133 @@ class con1:
                 etan=stres/dstrn # because dstrn=crkso
                 stres=etan*(strn-pseto)
 
-        self.strn=strn
-        self.stres=stres
-        self.etan=etan
-        self.crks=crks
-        self.pset=pset
+        # self.strn=strn
+        # self.stres=stres
+        # self.etan=etan
+        # self.crks=crks
+        # self.pset=pset
 
-        if retn=='etan': return self.etan
-        elif retn=='all': return self.stres,self.etan
-        else: return self.stres
+        return stres
 
-    def basicCurve(self,plotting=False,lbl='stmdl2',title='con1',legend=False,xlim=(None,None),ylim=(None,None),spacing=0.0001):
-        strain=np.arange(-1.1*np.absolute(self.strnc1),1.1*np.absolute(self.strnt1),spacing)
-        self.plot(strain,retn='stress',title=title,lineType='-',legend=legend,lbl='stmdl2',pseto=0,crkso=0,xlim=xlim,ylim=ylim)
+    def basicCurve(self,title='',xlim=(None,None),ylim=(None,None),spacing=0.00001):
+        strain=np.arange(-1.1*np.absolute(self.eps_c2),1.1*self.eps_t2,spacing)
+        self.plot(strain,title=title,lineType='-',xlim=xlim,ylim=ylim) # pset=0,crks=0
 
-    def plot(self,strain,retn='stress',title='con1',lineType='-',legend=True,lbl='stmdl2',xlim=(None,None),ylim=(None,None),ylabel='Stress [MPa]',xlabel='Strain',pseto='',crkso=''):
-        # strain=np.arange(-np.absolute(self.strnc1),np.absolute(self.strnt1),0.0001)
-        fig,ax = utils.plotBase()
-        stress,etan=[],[]
+    def plot(self,strain,title='',lineType='-',xlim=(None,None),ylim=(None,None)): #,pset=0,crks=0
+        stress=[]
         for j,i in enumerate(strain):
-            if crkso!='': self.crks=crkso
-            if pseto!='': self.pset=pseto
-            self.stress(i)
-            stress.append(self.stres)
-            etan.append(self.etan)
-#             if j>2:
-#                 X=strain[-3:-1]
-#                 Y=stress[-3:-1]
-#                 print('step: {0}, etan: {1}, slope_intercept: {2}'.format(j,self.etan,self.slope_intercept(X,Y)[0]))
-        stress=np.array(stress)
-        etan=np.array(etan)
-        strain=strain.reshape(len(strain),1)
-        stress=stress.reshape(len(stress),1)
-        etan=etan.reshape(len(etan),1)
-        self.df=pd.DataFrame(np.hstack((stress,strain,etan)),columns=['stress','strain','etan'])
-        if 'etan' in retn:
-            if retn=='etan' or retn=='etan1':ax.plot(self.df['strain'],self.df['etan'],lineType, linewidth=2, markersize=5,label=lbl)
-            if retn=='etan' or retn=='etan2':
-                slope=self.slope_intercept(strain,stress)
-                ax.plot(strain[:-1],slope,lineType, linewidth=2, markersize=5,label='slope')
-        else: ax.plot(self.df['strain'],self.df['stress'],lineType, linewidth=2, markersize=5,label=lbl)
-        if legend: ax.legend()
-        ax.set_title(title)
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
-        plt.show()
+            # if crks!='': self.crks=crks
+            # if pset!='': self.pset=pset
+            stress.append(self.stress(i))
+        plotStress([strain,stress],title=title,xlim=xlim,ylim=ylim)
 
-    def slope_intercept(self,X,Y):
-        slope=[]
-        for i in range(0,len(X)-1):
-            if (X[i+1] - X[i])==0:
-                print('ERROR: slope_intercept({},{})'.format([X[i+1],X[i]],[Y[i+1],Y[i]]))
-                slope.append(math.nan)
-            else: slope.append((Y[i+1] - Y[i]) / (X[i+1] - X[i]) )
-        return slope
-
-class conGen(con1): # concrete material properties generator
-    def __init__(self, fc1, length, ID='concrete', fc2_factor = 0.05, characteristic = True,epsilon_2t='',alpha_t='',alpha_c='',alphaT='',plotting=True,title="con1",strain_prec=6,legend=True):
-        fc1 = round(fc1, 1)
-        fc2 = round(fc2_factor * fc1, 1)
-        if characteristic:
-            fcm = round(fc1+8,2)
-        else:
-            fcm = fc1
-        if fc1 <= 50:
-            ft = round(0.3 * fcm ** (2/3), 1)
-        else:
-            ft = round(2.12*np.log(1+0.1*fcm), 1)
-        Gf = round(73 * fcm**0.18/1000, 3)
-        Ec0 = round(int(21500*(fcm/10)**(1/3)),-2)
+class con1gen(con1): # concrete material properties generator
+    def __init__(self, fc1, length, fc2_factor = 0.05, characteristic = True, epsilon_2t='', alphac=''):
+        fc2 = fc2_factor * fc1
+        if characteristic: fcm = fc1+8
+        else: fcm = fc1
+        if fc1 <= 50: ft = 0.3 * fcm ** (2/3)
+        else: ft = 2.12*np.log(1+0.1*fcm)
+        Gf = 73 * fcm**0.18/1000
+        Ec0 = 21500*(fcm/10)**(1/3) # initial compressive stiffness
         poisson = 0.2
-        Gc = round(250 * Gf, 1)
-        epsilon_1c = round(5 * fc1 / Ec0 /3, strain_prec)
-        Ec1 = int(round(fc1 / epsilon_1c, -2))
-        alphaC = min(max(0,round((Ec0 - Ec1)/Ec1,2)),1)
-        if alpha_c=='' or alpha_c=='P' or alpha_c=='p': alphaC = alphaC
-        elif alpha_c=='N' or alpha_c=='n': alphaC = -alphaC
-        else: alphaC=alpha_c
-        if alpha_t=='' or alpha_t=='P' or alpha_t=='p': alphaT = alphaC
-        elif alpha_t=='N' or alpha_t=='n': alphaT = -alphaC
-        else: alphaT=alpha_t
-        epsilon_2c = round(epsilon_1c + 3 * Gc / (2 * length * fc1), strain_prec)
-        Ec2 = - int(round((1 - fc2_factor) * fc1 /(epsilon_2c - epsilon_1c), -2))
-        Et1 = Ec0
-        epsilon_1t = round(ft / Et1, strain_prec)
-        if epsilon_2t=='': epsilon_2t = round(Gf/(length*ft), strain_prec)
-        else: epsilon_2t = epsilon_2t
-        Et2 = - int(round(ft /(epsilon_2t - epsilon_1t), -2))
+        Gc = 250 * Gf
+        epsilon_1c =5 * fc1 / Ec0 /3
+        epsilon_2c = epsilon_1c + 3 * Gc / (2 * length * fc1)
+        Ec1 = fc1 / epsilon_1c # secant compressive stiffness
+        Ec2 = -(fc1-fc2)/(epsilon_2c - epsilon_1c) # secant compressive softening stiffness
+        alpha = min(max(0,(Ec0 - Ec1)/Ec1),1)
+        if alphac=='' or alphac=='N' or alphac=='n': alphac = -alpha
+        elif alphac=='P' or alphac=='p': alphac = alpha
+        else: alphac=alphac
+        alphat = -1
+        Ec0 = (1+np.abs(alphac))*Ec1 # in case alphac is changed
+        Et1 = Ec0 # secant tensile stiffness
+        epsilon_1t = ft / Et1
+        # epsilon_2t
+        area_f = Gf/length # fracture energy area
+        area_f_soft = area_f - epsilon_1t*ft/2 # area under the softening curve
+        # Figure 1 page p 17 in RTD 2010
+        eps_u = 2*area_f_soft/ft
+        E0 = -ft/(eps_u-epsilon_1t) # tangent stiffness at epsilon_1t
+        E1 = 0 # tangent stiffness at epsilon_2t
+        epsilon_2t = max((epsilon_1t*E0+epsilon_1t*E1-2*ft)/(E0+E1),epsilon_1t)
+        # print('epsilon_1t={},eps_u={},epsilon_2t={}'.format(epsilon_1t,eps_u,epsilon_2t))
+        # print('area_f={},area_f_soft={}'.format(area_f,area_f_soft))
+        # print('E0={},E1={}'.format(E0,E1))
+        # epsilon_2t using area under parabola curve
+        # epsilon_2t = 3*area_t_par/ft
+        Et2 = - ft /(epsilon_2t - epsilon_1t) # secant tensile softening stiffness
 
-        super().__init__(Ec1,Ec2,-epsilon_2c,-fc2,Et1,Et2,epsilon_2t,alphaC,alphaT)
+        super().__init__(Ec1,-fc1,Ec2,-fc2,Et1,ft,Et2,alphac,alphat)
+        #super().__init__(Ec1,Ec2,-epsilon_2c,-fc2,Et1,Et2,epsilon_2t,alphac,alphat)
 
-        data = np.array([[ID, length, fc1, fc2, ft, Ec0, Ec1,
-                          Ec2, Et1, Et2, Gf, Gc, epsilon_1c,
-                          epsilon_2c, epsilon_1t, epsilon_2t, alphaC,alphaT]])
-        self.genProp = pd.DataFrame(data,index=data[:,0])
-        self.genProp.columns = ['$$h[mm]$$', '$$f_{c1}[MPa]$$','$$f_{c2}[MPa]$$', '$$f_{t}[MPa]$$',
-                      '$$E_{c0}[MPa]$$','$$E_{c1}[MPa]$$','$$E_{c2}[MPa]$$','$$E_{t1}[MPa]$$',
-                      '$$E_{t2}[MPa]$$','$$G_{f}[N/mm]$$','$$G_{c}[N/mm]$$','$$e_{c1}$$',
-                      '$$e_{c2}$$','$$e_{t1}$$', '$$e_{t2}$$','$$alpha_{C}$$','$$alpha_{N}$$']
-        self.conGen_adaptic= [Ec1, fc1, Ec2, fc2, Et1, ft, Et2]
-        self.conGen_stmdl= [Ec1,Ec2,-epsilon_2c,-fc2,Et1,Et2,epsilon_2t]
+        # data = np.array([[type(self).__name__,length, fc1, fc2, ft, Ec0, Ec1,
+        #                   Ec2, Et1, Et2, Gf, Gc, epsilon_1c,
+        #                   epsilon_2c, epsilon_1t, epsilon_2t, alphac,alphat]])
+        # self.genProp = pd.DataFrame(data,index=data[:,0])
+        # self.genProp.columns = ['type','$$h[mm]$$', '$$f_{c1}[MPa]$$','$$f_{c2}[MPa]$$', '$$f_{t}[MPa]$$',
+        #               '$$E_{c0}[MPa]$$','$$E_{c1}[MPa]$$','$$E_{c2}[MPa]$$','$$E_{t1}[MPa]$$',
+        #               '$$E_{t2}[MPa]$$','$$G_{f}[N/mm]$$','$$G_{c}[N/mm]$$','$$e_{c1}$$',
+        #               '$$e_{c2}$$','$$e_{t1}$$', '$$e_{t2}$$','$$alpha_{C}$$','$$alpha_{T}$$']
 
-class stl1:
-    def __init__(self, ID, E1, fy, fu, epsilon_u,plotting=True,title="stl1",tension=True,compression=True,legend=True):
-        self.ID = ID
+class epm1: # elsto-platic model
+    def __init__(self, E1, fy, fu, epsilon_u,tension=True,compression=True):
         self.E1 = E1
         self.fy = fy
         self.fu = fu
-        self.epsilon_u = (epsilon_u)
-        self.epsilon_y = round(fy / E1,5)
-        self.E2 = round((fu - fy) / (epsilon_u - self.epsilon_y),1)
-        self.mu = round(self.E2 / E1,7)
+        self.epsilon_u = epsilon_u
+        self.epsilon_y = fy / E1
+        self.E2 = (fu - fy) / (epsilon_u - self.epsilon_y)
+        self.mu = self.E2 / E1
+        self.tension=tension
+        self.compression=compression
 
-        self.df = pd.DataFrame([[0,0],[self.epsilon_y,self.fy],[self.epsilon_u,self.fu]],columns=['strain','stress'])
-        if tension and compression:
-            self.df=pd.concat([-self.df.iloc[::-1],self.df])[::-1]
-        elif compression:
-            self.df=-self.df
-
-        self.np=plotStress(self,self.df,lbl="stl1",title=title,xlim=(None,None),ylim=(None,None),plotting=plotting,legend=legend)
-        self.np=np.array(self.np)
-
-    def data_frame(self):
-        data = np.array([[self.ID, self.E1, self.E2, self.fy, self.fu, self.epsilon_y, self.epsilon_u,
+        data = np.array([[type(self).__name__, self.E1, self.E2, self.fy, self.fu, self.epsilon_y, self.epsilon_u,
                           self.mu]])
-        df = pd.DataFrame(data,index=data[:,0])
-        df.columns = ['ID', '$$E_{1}[MPa]$$', '$$E_{2}[MPa]$$', '$$f_{y}[MPa]$$', '$$f_{u}[MPa]$$',
+        self.prop = pd.DataFrame(data,index=data[:,0])
+        self.prop.columns = ['type', '$$E_{1}[MPa]$$', '$$E_{2}[MPa]$$', '$$f_{y}[MPa]$$', '$$f_{u}[MPa]$$',
                       '$$e_{y}$$','$$e_{u}$$','$$mu$$']
-        return df
 
-class esb1:
-    def __init__(self, ID, fu, epsilon_u=0.0035, plotting=True,title="esb1"):
-        self.ID = ID
+    def stress(self,strain):
+        if self.tension and 0<strain<=self.epsilon_y: return strain*self.E1
+        elif self.tension and self.epsilon_y<strain<=self.epsilon_u: return self.fy+(strain-self.epsilon_y)*self.E2
+        elif self.compression and 0>strain>=-self.epsilon_y: return strain*self.E1
+        elif self.compression and -self.epsilon_y>strain>=-self.epsilon_u: return -self.fy+(strain-self.epsilon_y)*self.E2
+        else: return 0
+
+    def basicCurve(self,title='',xlim=(None,None),ylim=(None,None)):
+        # data = [[0,self.epsilon_y,self.epsilon_u],[0,self.fy,self.fu]]
+        # if self.tension and self.compression: data=[[[-i for i in reversed(z)]+z] for z in data]
+        # elif self.compression:data=[[[-i for i in reversed(z)]] for z in data]
+        data = [0,self.epsilon_y,self.epsilon_u]
+        if self.tension and self.compression: data=[-i for i in reversed(data)]+data
+        elif self.compression:data=[-i for i in reversed(data)]
+        self.plot(data,title=title,xlim=xlim,ylim=ylim)
+
+    def plot(self,strain,title='',lineType='-',xlim=(None,None),ylim=(None,None)):
+        stress=[self.stress(i) for i in strain]
+        plotStress([strain,stress],title=title,xlim=xlim,ylim=ylim)
+
+class esb1: # equivalent stress block
+    def __init__(self, fu, lamb, epsilon_u):
         self.fu = fu
-        self.epsilon_u2 = round(epsilon_u,4)
-        self.epsilon_u1 = 0.2*self.epsilon_u2
+        self.epsilon_u = epsilon_u
+        self.epsilon_y = lamb*self.epsilon_u
+        self.lamb=lamb
 
-        self.df = pd.DataFrame([[0,0],[self.epsilon_u1,0],[self.epsilon_u1,self.fu],[self.epsilon_u2,self.fu]],columns=['strain','stress'])
-        self.df=-self.df
+        data = np.array([[type(self).__name__, self.fu, self.epsilon_u,self.lamb]])
+        self.prop = pd.DataFrame(data,index=data[:,0])
+        self.prop.columns = ['type', '$$f_{u1}[MPa]$$', '$$e_{u}$$', '$$\lambda$$']
 
-        self.np=plotStress(self,self.df,lbl="esb1",title=title,xlim=(None,None),ylim=(None,None),plotting=plotting)
-        self.np=np.array(self.np)
+    def stress(self,strain):
+        if self.epsilon_y <= strain <= self.epsilon_u: return self.fu
+        else: return 0
 
-    def data_frame(self):
-        data = np.array([[self.ID, self.fu, self.epsilon_u1, self.epsilon_u2]])
-        df = pd.DataFrame(data,index=data[:,0])
-        df.columns = ['ID', '$$f_{u1}[MPa]$$', '$$e_{u1}$$', '$$e_{u2}$$']
+    def basicCurve(self,title='',xlim=(None,None),ylim=(None,None)):
+        strain = [0,0.999*self.epsilon_y,self.epsilon_y,self.epsilon_u]
+        self.plot(strain,title=title,xlim=xlim,ylim=ylim)
 
-class bond:
-    def __init__(self,c,f_cm,ft,L,dia,n_bars,case=0,redFact=1):
-        # case - refer to Table 6.1-1 MC2010:
-        # 0 - Marti
-        # 1 - Pull-out, good bond
-        # 2 - Pull-out, all other bond cond
-        # 3 - Splitting, good bond cond, unconfined
-        # 4 - Splitting, good bond cond, stirrups
-        # 5 - Splitting, all other bond cond, unconfined
-        # 6 - Splitting, all other bond cond, stirrups
-        self.case=case
-        self.f_cm = f_cm # MPa
-        self.ft=ft
-        self.L=L
-        self.dia=dia
-        self.n_bars=n_bars
-        self.redFact=redFact
-        if self.case ==0:
-            self.tau_max = self.ft * redFact
-            self.s_1 = 0.001 # mm
-            self.s_2 = 2 # mm
-            self.s_3 = c # mm, clear distance between ribs
-            self.tau_bf = self.ft * redFact
-        elif self.case ==1:
-            self.tau_max = 2.5 * self.f_cm**0.5 * redFact
-            self.s_1 = 1 # mm
-            self.s_2 = 2 # mm
-            self.s_3 = c # mm, clear distance between ribs
-            self.alpha = 0.4
-            self.tau_bf = 0.4 * self.tau_max
-        elif self.case ==4:
-            self.tau_max = 2.5 * self.f_cm**0.5
-            self.tau_bu_split=8*(f_cm/25)**0.25 * redFact
-            self.s_1 = 1/self.tau_max*self.tau_bu_split # mm
-            #self.s_2 = self.s_1 # mm
-            self.s_3 = 0.5 * c # mm
-            self.alpha = 0.4
-            self.tau_bf = 0.4 * self.tau_bu_split
-        else: print('Case error')
-    def slip2tau(self,s):
-        if self.case ==1:
-            if 0 <= s <= self.s_1:
-                tau = self.tau_max*(s/self.s_1)**self.alpha
-            elif self.s_1 <= s <= self.s_2:
-                tau = self.tau_max
-            elif self.s_2 <= s <= self.s_3:
-                tau = self.tau_max - (self.tau_max-self.tau_bf)*(s-self.s_2)/(self.s_3-self.s_2)
-            else:
-                tau = self.tau_bf
-        elif self.case ==0:
-            if 0 <= s <= self.s_1:
-                tau = self.tau_max #*(s/self.s_1)
-            else:
-                tau = self.tau_bf
-        elif self.case ==4:
-            if 0 <= s <= self.s_1:
-                tau = self.tau_bu_split*(s/self.s_1)**self.alpha
-            elif self.s_1 <= s <= self.s_3:
-                tau = self.tau_bu_split - (self.tau_bu_split-self.tau_bf)*(s-self.s_1)/(self.s_3-self.s_1)
-            else:
-                tau = self.tau_bf
-        return tau
-    def force2tau(self,force):
-        return force/(self.n_bars*self.dia*np.pi*self.L)
-    def tau2force(self,tau):
-        return tau*(self.n_bars*self.dia*np.pi*self.L)
-    def curve(self,stop=9,num=50,title='bond stress–slip relationship'):
-        fig = plt.figure(figsize = (6,4))
-        ax = fig.add_subplot(111)
-        ax.grid(which='major', linestyle=':', linewidth='0.5', color='black')
-        x=np.linspace(0, stop, num)
-        y=[self.slip2tau(i) for i in x]
-        ax.plot(x,y,'-', linewidth=2, markersize=5)
-        ax.set_title(title)
-        ax.set_xlabel('Slip [mm]')
-        ax.set_ylabel('Stress [MPa]')
-        ax.set_xlim(0,None)
-        ax.set_ylim(0,None)
-        plt.show()
-    def astr_curve(self):
-        disp1 = self.s_1
-        disp2 = self.s_3
-        disp3 = self.s_3+1
-        f1 = self.tau2force(self.slip2tau(disp1))
-        f2 = self.tau2force(self.slip2tau(disp2))
-        f3 = self.tau2force(self.slip2tau(disp3))
-        #np.array([[disp1, f1],[disp2, f2],[disp3, f3]]
-        return f1,f2,f3,disp1,disp2,disp3
-    def dataframe(self):
-        return pd.DataFrame([[self.s_1,self.s_2,self.s_3,self.slip2tau(self.s_1),self.slip2tau(self.s_2),self.slip2tau(self.s_3)]],columns=['s_1','s_2','s_3','t_1','t_2','t_3'])
-    def curve_force(self,stop=9,num=50,title='bond force–slip relationship'):
-        fig = plt.figure(figsize = (6,4))
-        ax = fig.add_subplot(111)
-        ax.grid(which='major', linestyle=':', linewidth='0.5', color='black')
-        x=np.linspace(0, stop, num)
-        y=[(self.tau2force(self.slip2tau(i)))/1000 for i in x]
-        if self.case ==0: ax.plot(x,y,'-', linewidth=2, markersize=5,label='ft')
-        else: ax.plot(x,y,'-', linewidth=2, markersize=5,label='MC2010')
-        f1,f2,f3,disp1,disp2,disp3=self.astr_curve()
-        ax.plot([0,disp1,disp2,disp3],[0,f1/1000,f2/1000,f3/1000],'-', linewidth=2, markersize=5,label='ASTR')
-        ax.legend()
-        ax.set_title(title)
-        ax.set_xlabel('Slip [mm]')
-        ax.set_ylabel('Force [kN]')
-        ax.set_xlim(0,None)
-        ax.set_ylim(0,None)
-        plt.show()
+    def plot(self,strain,title='',lineType='-',xlim=(None,None),ylim=(None,None)):
+        stress=[self.stress(i) for i in strain]
+        plotStress([strain,stress],title=title,xlim=xlim,ylim=ylim)

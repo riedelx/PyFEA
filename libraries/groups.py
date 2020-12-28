@@ -8,12 +8,7 @@ import sections as sect
 import materials as mat
 import utils
 
-
-def findPointZero(curve,epsilon,limY=False):
-    try: return utils.findExactPoint(curve, epsilon,limY=limY)[1]
-    except: return 0
-
-class MNclass:
+class rc:
     def __init__(self,concr,reinf,section):
         self.h=section.h
         self.section=section
@@ -89,7 +84,7 @@ class MNclass:
         for i in self.section.reinf_sect:
             eps=self.epsilonFunc(i[2],epsilon)
             eps_s.append(eps)
-            sigma= findPointZero(self.reinf.np,eps)
+            sigma=self.reinf.stress(eps)
             sigma_s.append(sigma)
             A=np.pi*i[1]**2/4*i[0]
             f_s_i=sigma*A
@@ -103,7 +98,7 @@ class MNclass:
             x_sEnv.append(x_i)
             b_i=self.section.width(x_i)
             e=self.epsilonFunc(x_i,epsilon)
-            s=findPointZero(self.reinf.np,e)
+            s=self.reinf.stress(e)
             sigma_sEnv.append(s)
         if plotting:
             fig,ax = utils.plotBase()
@@ -128,11 +123,10 @@ class MNclass:
             b_i=self.section.width(x_i)
             e=self.epsilonFunc(x_i,epsilon)
             try:
-                self.concr.crks=0
-                self.concr.pset=0
-                self.concr.stress(e)
-                s=self.concr.stres
-            except: s=findPointZero(self.concr.np,e)
+                # self.concr.crks=0
+                # self.concr.pset=0
+                s=self.concr.stress(e)
+            except: pass #s=self.reinf.stress(e)
             sigma_con.append(s)
             f_con_i=s*b_i*h_i
             f_con.append(f_con_i)

@@ -33,7 +33,7 @@ def plotFunc(self,x_coordinates,y_coordinates,reverse,title='section layout'):
     plt.show()
 
 class rcts:
-    def __init__(self,Df,Dw,Bf,Bw,reinf_sect,reverse=False):
+    def __init__(self,Df,Dw,Bf,Bw,reinf_sect):
         self.Dw=Dw
         self.Df=Df
         self.Bw=Bw
