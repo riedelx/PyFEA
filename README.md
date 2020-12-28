@@ -79,7 +79,7 @@ Most of the other parameters are calculated according to <em>CEB-FIP Model Code 
 |           Initial tensile modulus            |                     $$E_{t1} = E_{c0}$$                      |  MPa  |         NA         |
 |          Compressive failure strain          | $$\varepsilon_{c2} = \varepsilon_{c1} + \frac{3}{2}\frac{G_c}{hf_c}$$ |   -   |   RTD 2010 p. 21   |
 |       Tensile strain at peak strength        |          $$\varepsilon_{t1} = \frac{f_t}{E_{t1}}$$           |   -   |         NA         |
-|            Tensile failure strain            | $$\varepsilon_{t2}$$ is set se that the area under the tensile curve is \frac{G_f}{h} |   -   |   RTD 2010 p. 17   |
+|            Tensile failure strain            | $$\varepsilon_{t2}$$ is set so that the area under the tensile curve is $\frac{G_f}{h}$ |   -   |   RTD 2010 p. 17   |
 |         Compressive response factor          |         $$\alpha_c = \frac{E_{c0}-E_{c1}}{E_{c1}}$$          |   -   |                    |
 |           Tensile response factor            |                      $$\alpha_t = -1$$                       |   -   |                    |
 
@@ -330,7 +330,7 @@ groups.rc(concr,reinf,section).mnCurve(xRatio=[0.16,0.2,0.3,0.4,0.5,0.8,0.9,1,1E
 |    points     | list  | if not `None` plot points with the given axial force and bending moment in a format `points = [[M1,F1],[M2,F2]]` |
 |    r2kPath    |  int  | if not `None` this provides a path to csv file to plot another M-N curve in a format `r2kPath="file.csv"` |
 |    legend     | bool  |                        plot a legend                         |
-|    labels     | list  |                list of labels for the legend                 |
+|    labels     | list  | list of labels for the legend in a format `labels = ['label 1','label 2']` |
 
 This method generates the M-N interaction diagram.
 
