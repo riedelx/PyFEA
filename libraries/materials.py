@@ -269,16 +269,18 @@ class con1gen(con1): # concrete material properties generator
         # epsilon_2t
         area_f = Gf/length # fracture energy area
         area_f_soft = area_f - epsilon_1t*ft/2 # area under the softening curve
-        # Figure 1 page p 17 in RTD 2010
-        eps_u = 2*area_f_soft/ft
-        E0 = -ft/(eps_u-epsilon_1t) # tangent stiffness at epsilon_1t
-        E1 = 0 # tangent stiffness at epsilon_2t
-        epsilon_2t = max((epsilon_1t*E0+epsilon_1t*E1-2*ft)/(E0+E1),epsilon_1t)
+        # Method 1 -# Figure 1 page p 17 in RTD 2010
+        # eps_u = 2*area_f_soft/ft
+        # E0 = -ft/(eps_u-epsilon_1t) # tangent stiffness at epsilon_1t
+        # E1 = 0 # tangent stiffness at epsilon_2t
+        # epsilon_2t = max((epsilon_1t*E0+epsilon_1t*E1-2*ft)/(E0+E1),epsilon_1t)
+        # Method 2
+        # epsilon_2t using area under parabola curve
+        epsilon_2t = max(3*area_f_soft/ft,epsilon_1t)
         # print('epsilon_1t={},eps_u={},epsilon_2t={}'.format(epsilon_1t,eps_u,epsilon_2t))
         # print('area_f={},area_f_soft={}'.format(area_f,area_f_soft))
         # print('E0={},E1={}'.format(E0,E1))
-        # epsilon_2t using area under parabola curve
-        # epsilon_2t = 3*area_t_par/ft
+
         Et2 = - ft /(epsilon_2t - epsilon_1t) # secant tensile softening stiffness
 
         super().__init__(Ec1,-fc1,Ec2,-fc2,Et1,ft,Et2,alphac,alphat)

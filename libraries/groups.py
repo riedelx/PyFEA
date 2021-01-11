@@ -148,7 +148,7 @@ class rc:
             print('Total axial force: {} kN'.format(int(f_tot/1E3)))
             print('Total moment: {} kNm'.format(int(m_tot/1E6)))
         return f_tot,m_tot #,f_s,f_con,eps_s,sigma_s
-    def mnCurve(self,xRatio=[0.16,0.2,0.3,0.4,0.5,0.8,0.9,1,1E99],n_layers=100,epsU=-0.0035,reverseMoment=False,points=None,r2kPath=None,legend=False,labels=None):
+    def mnCurve(self,xRatio=[0.16,0.2,0.3,0.4,0.5,0.8,0.9,1,1E99],n_layers=100,epsU=-0.0035,reverseMoment=False,points=None,r2kPath=None,legend=False,labels=None,title='M-N interaction diagram'):
         F=[]
         M=[]
         xRatio=[i*self.h for i in xRatio]
@@ -190,7 +190,7 @@ class rc:
                 else: ax.plot(M_Ed,F_Ed,'r+', mew=3, markersize=10,label='Design load')
         if legend:
             ax.legend()
-        ax.set_title('M-N interaction diagram')
+        ax.set_title(title)
         ax.set_xlabel('Moment [kNm]')
         ax.set_ylabel('Axial load [kN]')
         plt.show()

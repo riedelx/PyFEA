@@ -45,6 +45,7 @@ class rcts:
         area_f = Df * Bf
         self.area = area_w + area_f
         self.centr = int(self.h-(Df*area_f/2+area_w*(Df+Dw/2))/self.area)
+        #self.I = area_w + area_f
     def plotting(self,title='section layout',reverse=False):
             y_coordinates = [0,self.Dw+0,self.Dw+0,self.h,self.h,self.Dw+0,self.Dw+0,0,0]
             x_coordinates = [self.Bw/2,self.Bw/2,self.Bf/2,self.Bf/2,-self.Bf/2,-self.Bf/2,-self.Bw/2,-self.Bw/2,self.Bw/2]
