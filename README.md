@@ -69,7 +69,7 @@ Most of the other parameters are calculated according to <em>CEB-FIP Model Code 
 |          Mean compressive strength           |                   $$f_{cm} = f_{ck} + 8$$                    |  MPa  | MC 1990 Eq. 2.1-1  |
 |          Peak compressive strength           |                          $$f_{c1}$$                          |  MPa  |         NA         |
 |        Residual compressive strength         |                          $$f_{c2}$$                          |  MPa  |         NA         |
-|               Tensile strength               | $$f_t= ft_{factor} \cdot 0.3f_{cm}^{2/3} \leq C50$$ $$ f_t= ft_{factor} \cdot 2.12ln(1+0.1f_{cm}) > C50$$ |  MPa  | MC 2010 Eq. 5.1-3a |
+|               Tensile strength               | $$f_t= 0.3f_{cm}^{2/3} \leq C50$$ $$ f_t= 2.12ln(1+0.1f_{cm}) > C50$$ |  MPa  | MC 2010 Eq. 5.1-3a |
 |               Fracture energy                |           $$G_f = 73\frac{ f_{cm}^{0.18}}{1000} $$           | N/mm  | MC 2010 Eq. 5.1-9  |
 |         Initial compressive modulus          |           $$E_{c0} = 21500\cdot(f_{cm}/10)^{1/3}$$           |  MPa  | MC 2010 Eq. 5.1-21 |
 |               Poisson's ratio                |                           $$0.2$$                            |   -   |  MC 2010 5.1.7.3   |

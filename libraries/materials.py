@@ -243,6 +243,9 @@ class con1:
             stress.append(self.stress(i))
         plotStress([strain,stress],title=title,xlim=xlim,ylim=ylim)
 
+    def adaptic_print(self):
+        return ['con1', self.Ec1, -self.fc1, self.Ec2, -self.fc2, self.Et1,self.ft, self.Et2, self.alphac, self.alphat]
+
 class con1gen(con1): # concrete material properties generator
     def __init__(self, fc1, length, fc2_factor = 0.05, characteristic = True, epsilon_2t='', alphac=''):
         fc2 = fc2_factor * fc1
