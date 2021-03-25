@@ -35,7 +35,7 @@ class con1:
         self.adaptic = [Ec1,-fc1,Ec2,-fc2,Et1,ft,Et2,alphac,alphat]
         self.Ec0=(1+np.abs(alphac))*Ec1 # secant compressive stiffness
         self.eps_c1=fc1/Ec1 # strain at peak compressive strength
-        self.eps_c2=self.eps_c1-fc1/Ec2 # strain at residual compressive strength
+        self.eps_c2=self.eps_c1-(fc1-fc2)/Ec2 # strain at residual compressive strength
         self.eps_t1=ft/Et1 # strain at peak tensile strength
         self.eps_t2=self.eps_t1-ft/Et2 # strain when tensile stress reaches 0
 
@@ -247,18 +247,24 @@ class con1:
         return ['con1', self.Ec1, -self.fc1, self.Ec2, -self.fc2, self.Et1,self.ft, self.Et2, self.alphac, self.alphat]
 
 class con1gen(con1): # concrete material properties generator
-    def __init__(self, fc1, length, fc2_factor = 0.05, characteristic = True, epsilon_2t='', alphac=''):
+    def __init__(self, fc1, length, Qs, fc2_factor = 0.05, characteristic = True, epsilon_2t='', alphac='', fy = 500,tensionStiff = False):
         fc2 = fc2_factor * fc1
         if characteristic: fcm = fc1+8
         else: fcm = fc1
         if fc1 <= 50: ft = 0.3 * fcm ** (2/3)
         else: ft = 2.12*np.log(1+0.1*fcm)
+        if tensionStiff: ft = ft / 2
         Gf = 73 * fcm**0.18/1000
         Ec0 = 21500*(fcm/10)**(1/3) # initial compressive stiffness
         poisson = 0.2
-        Gc = 250 * Gf
         epsilon_1c =5 * fc1 / Ec0 /3
+        # epsilon_2c - compressive fracture energy method
+        Gc = 250 * Gf
         epsilon_2c = epsilon_1c + 3 * Gc / (2 * length * fc1)
+        # epsilon_2c - Scott et al. (1982)
+        # Qst - ratio of volume of transverse reinforcement to volume of concrete core
+        # fy = yield strength of steel
+        epsilon_2c = 0.004 + 0.9*Qs*fy/300
         Ec1 = fc1 / epsilon_1c # secant compressive stiffness
         Ec2 = -(fc1-fc2)/(epsilon_2c - epsilon_1c) # secant compressive softening stiffness
         alpha = min(max(0,(Ec0 - Ec1)/Ec1),1)
@@ -269,22 +275,31 @@ class con1gen(con1): # concrete material properties generator
         Ec0 = (1+np.abs(alphac))*Ec1 # in case alphac is changed
         Et1 = Ec0 # secant tensile stiffness
         epsilon_1t = ft / Et1
+
         # epsilon_2t
-        area_f = Gf/length # fracture energy area
-        area_f_soft = area_f - epsilon_1t*ft/2 # area under the softening curve
-        # Method 1 -# Figure 1 page p 17 in RTD 2010
-        # eps_u = 2*area_f_soft/ft
-        # E0 = -ft/(eps_u-epsilon_1t) # tangent stiffness at epsilon_1t
-        # E1 = 0 # tangent stiffness at epsilon_2t
-        # epsilon_2t = max((epsilon_1t*E0+epsilon_1t*E1-2*ft)/(E0+E1),epsilon_1t)
-        # Method 2
-        # epsilon_2t using area under parabola curve
-        epsilon_2t = max(3*area_f_soft/ft,epsilon_1t)
+        if tensionStiff:
+            epsilon_2t = 0.001
+        else:
+            area_f = Gf/length # fracture energy area
+            area_f_soft = area_f - epsilon_1t*ft/2 # area under the softening curve
+
+            # Method 1 -# Figure 1 page p 17 in RTD 2010
+            # eps_u = 2*area_f_soft/ft
+            # E0 = -ft/(eps_u-epsilon_1t) # tangent stiffness at epsilon_1t
+            # E1 = 0 # tangent stiffness at epsilon_2t
+            # epsilon_2t = max((epsilon_1t*E0+epsilon_1t*E1-2*ft)/(E0+E1),epsilon_1t)
+
+            # Method 2
+            # epsilon_2t using area under parabola curve
+            if area_f_soft > 0: epsilon_2t = (epsilon_1t*ft*alphat+3*epsilon_1t*ft+6*area_f_soft)/(ft*(alphat+3))
+            #epsilon_2t = epsilon_1t+(2+np.abs(alphat))*area_f_soft/ft
+            else: epsilon_2t = epsilon_1t
+
+
+        Et2 = - ft /(epsilon_2t - epsilon_1t) # secant tensile softening stiffness
         # print('epsilon_1t={},eps_u={},epsilon_2t={}'.format(epsilon_1t,eps_u,epsilon_2t))
         # print('area_f={},area_f_soft={}'.format(area_f,area_f_soft))
         # print('E0={},E1={}'.format(E0,E1))
-
-        Et2 = - ft /(epsilon_2t - epsilon_1t) # secant tensile softening stiffness
 
         super().__init__(Ec1,-fc1,Ec2,-fc2,Et1,ft,Et2,alphac,alphat)
         #super().__init__(Ec1,Ec2,-epsilon_2c,-fc2,Et1,Et2,epsilon_2t,alphac,alphat)
